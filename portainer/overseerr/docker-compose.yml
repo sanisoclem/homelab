@@ -1,0 +1,17 @@
+services:
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=Australia/Melbourne
+      - PORT=5055 #optional
+    ports:
+      - 5055:5055
+    volumes:
+      - overseerr:/app/config
+    restart: unless-stopped
+
+volumes:
+  overseerr:
+    external: true
