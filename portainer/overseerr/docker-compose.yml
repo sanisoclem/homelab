@@ -9,9 +9,9 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - overseerr:/app/config
+      - overseerr4:/app/config
     restart: unless-stopped
 
 volumes:
-  overseerr:
+  overseerr4:
     external: true

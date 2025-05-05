@@ -10,7 +10,7 @@ services:
     #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - immich_upload:/usr/src/app/upload
+      - immich_upload4:/usr/src/app/upload
     env_file:
       - stack.env
     ports:
@@ -54,7 +54,7 @@ services:
       POSTGRES_DB: ${DB_DATABASE_NAME}
       POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
-      - immich_db:/var/lib/postgresql/data
+      - immich_db4:/var/lib/postgresql/data
     healthcheck:
       test: >-
         pg_isready --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" || exit 1; Chksum="$$(psql --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
@@ -67,7 +67,7 @@ services:
 
 volumes:
   model-cache:
-  immich_db:
+  immich_db4:
     external: true
-  immich_upload:
+  immich_upload4:
     external: true

@@ -20,33 +20,32 @@ docker run hello-world
 # create nfs volumes
 docker volume create --driver local \
   --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
+  --opt o=addr=10.0.100.30,rw,nfsvers=4 \
   --opt device=:/mnt/main/svc/portainer \
-  portainer_data
+  portainer_data4
 
 docker volume create --driver local \
   --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
+  --opt o=addr=10.0.100.30,rw,nfsvers=4 \
   --opt device=:/mnt/main/svc/overseerr \
-  overseerr
+  overseerr4
 
 docker volume create --driver local \
   --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
+  --opt o=addr=10.0.100.30,rw,nfsvers=4 \
   --opt device=:/mnt/main/usr/immich/db \
-  immich_db
+  immich_db4
   
 docker volume create --driver local \
   --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
+  --opt o=addr=10.0.100.30,rw,nfsvers=4 \
   --opt device=:/mnt/main/usr/immich/upload \
-  immich_upload
+  immich_upload4
 
 docker volume create --driver local \
   --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
+  --opt o=addr=10.0.100.30,rw,nfsvers=4 \
   --opt device=:/mnt/main/svc/proxy-manager \
-  proxyman
+  proxyman4
   
-docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:lts
-#docker run -d -p 80:80 -p 443:443 -p 81:81 --name proxyman -v proxyman:/data -v ./letsencrypt:/etc/letsencrypt jc21/nginx-proxy-manager:latest
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data4:/data portainer/portainer-ce:lts

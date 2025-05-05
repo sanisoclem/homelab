@@ -12,3 +12,7 @@ services:
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
+
+# volumes:
+#   proxyman4:
+#     external: true
