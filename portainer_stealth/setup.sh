@@ -1,3 +1,5 @@
+# Ensure eth0 has the correct VLAN tag
+
 apt update && apt upgrade -y
 
 apt install nfs-common -y
@@ -15,38 +17,19 @@ apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-co
 
 docker run hello-world
 
-
-
 # create nfs volumes
+# note: NFS share should whitelist stealth VLAN subnet (e.g., 10.0.123.0/24)
+# also need to whitelist traffic from stealth VLAN to NAS IP, if blocked
 docker volume create --driver local \
   --opt type=nfs \
   --opt o=addr=10.0.100.30,rw \
-  --opt device=:/mnt/main/svc/portainer \
+  --opt device=:/mnt/main/svc/portainer_stealth \
   portainer_data
 
 docker volume create --driver local \
   --opt type=nfs \
   --opt o=addr=10.0.100.30,rw \
-  --opt device=:/mnt/main/svc/overseerr \
-  overseerr
+  --opt device=:/mnt/main/usr/plex \
+  plex_data
 
-docker volume create --driver local \
-  --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
-  --opt device=:/mnt/main/usr/immich/db \
-  immich_db
-  
-docker volume create --driver local \
-  --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
-  --opt device=:/mnt/main/usr/immich/upload \
-  immich_upload
-
-docker volume create --driver local \
-  --opt type=nfs \
-  --opt o=addr=10.0.100.30,rw \
-  --opt device=:/mnt/main/svc/proxy-manager \
-  proxyman
-  
 docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:lts
-#docker run -d -p 80:80 -p 443:443 -p 81:81 --name proxyman -v proxyman:/data -v ./letsencrypt:/etc/letsencrypt jc21/nginx-proxy-manager:latest

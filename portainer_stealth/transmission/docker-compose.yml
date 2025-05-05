@@ -1,0 +1,28 @@
+services:
+  app:
+    image: linuxserver/transmission:4.0.6
+    container_name: transmission
+    environment:
+      TZ: Australia/Melbourne
+      #- HOST_WHITELIST= #optional
+      USER: ${USERNAME}
+      PASS: ${PASSWORD}
+    volumes:
+      - transmission_data:/config
+      - plex_data:/downloads/plex
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    #networks:
+    #  stealth:
+    #    ipv4_address: 10.0.123.66
+
+volumes:
+  transmission_data:
+  plex_data:
+    external: true
+
+#networks:
+#  stealth:
+#    external: true
