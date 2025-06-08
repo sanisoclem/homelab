@@ -9,20 +9,17 @@ services:
       PASS: ${PASSWORD}
     volumes:
       - transmission_data:/config
-      - plex_data:/downloads/plex
+      - plex_lib_data:/downloads/plex
     ports:
       - 9091:9091
       - 51413:51413
       - 51413:51413/udp
-    #networks:
-    #  stealth:
-    #    ipv4_address: 10.0.123.66
 
 volumes:
   transmission_data:
-  plex_data:
-    external: true
-
-#networks:
-#  stealth:
-#    external: true
+  plex_lib_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=10.0.100.30,rw,nfsvers=4.2,proto=tcp"
+      device: ":/mnt/main/usr/plex"

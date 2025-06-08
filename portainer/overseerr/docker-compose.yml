@@ -9,9 +9,13 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - overseerr4:/app/config
+      - overseerr_data:/app/config
     restart: unless-stopped
 
 volumes:
-  overseerr4:
-    external: true
+  overseerr_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=10.0.100.30,rw,nfsvers=4.2,proto=tcp"
+      device: ":/mnt/main/svc/overseerr"

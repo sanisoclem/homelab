@@ -1,0 +1,30 @@
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+
+    environment:
+      DISABLE_IPV6: 'true'
+      PUID: 3001
+      PGID: 3001
+    volumes:
+      - proxyman_data:/data
+      - proxyman_certs:/etc/letsencrypt
+
+volumes:
+  proxyman_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=10.0.100.30,rw,nfsvers=4.2,proto=tcp"
+      device: ":/mnt/main/svc/proxy-manager/data"
+  proxyman_certs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=10.0.100.30,rw,nfsvers=4.2,proto=tcp"
+      device: ":/mnt/main/svc/proxy-manager/cert"
