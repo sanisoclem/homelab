@@ -1,0 +1,145 @@
+name: eb
+services:
+  appdb:
+    restart: 'always'
+    image: postgres:17-alpine
+    environment:
+      PGUSER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+    - "8001:5432"
+    command:
+      - -c
+      - listen_addresses=*
+      - -c
+      - wal_level=logical
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  electric:
+    image: docker.io/electricsql/electric:latest
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@appdb:5432/app?sslmode=disable
+      ELECTRIC_INSECURE: true
+    ports:
+      - '8002:3000'
+    restart: 'always'
+    depends_on:
+      appdb:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+        PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-dev@local.dev}
+        PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-postgres123}
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - 8003:80
+
+  zitadel:
+    restart: 'always'
+    image: 'ghcr.io/zitadel/zitadel:latest'
+    command: 'start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled'
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: zdb
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: root
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: RootPassword1!
+      ZITADEL_EXTERNALSECURE: false
+    depends_on:
+      zdb:
+        condition: 'service_healthy'
+    ports:
+      - '8004:8080'
+
+  zdb:
+    restart: 'always'
+    image: postgres:17-alpine
+    environment:
+      PGUSER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "zitadel", "-U", "postgres"]
+      interval: '10s'
+      timeout: '30s'
+      retries: 5
+      start_period: '20s'
+      
+  nui:
+    image: ghcr.io/nats-nui/nui:latest
+    ports:
+      - "8005:31311"
+    volumes:
+      - "nui:/db"
+
+  nats1:
+    image: docker.io/nats:2.9.20
+    restart: 'always'
+    ports:
+      - "8006:4222"
+    volumes:
+      - nats1:/data
+    command:
+      - "--name=nats1"
+      - "--cluster_name=c1"
+      - "--cluster=nats://nats1:6222"
+      - "--routes=nats-route://nats1:6222,nats-route://nats2:6222,nats-route://nats3:6222"
+      - "--http_port=8222"
+      - "--js"
+      - "--sd=/data"
+
+  nats2:
+    image: docker.io/nats:2.9.20
+    restart: 'always'
+    # ports:
+      # - "4223:4222"
+      # - "8223:8222"
+    volumes:
+      - nats2:/data
+    command:
+      - "--name=nats2"
+      - "--cluster_name=c1"
+      - "--cluster=nats://nats2:6222"
+      - "--routes=nats-route://nats1:6222,nats-route://nats2:6222,nats-route://nats3:6222"
+      - "--http_port=8222"
+      - "--js"
+      - "--sd=/data"
+
+  nats3:
+    image: docker.io/nats:2.9.20
+    restart: 'always'
+    # ports:
+      # - "4224:4222"
+      # - "8224:8222"
+    volumes:
+      - nats3:/data
+    command:
+      - "--name=nats3"
+      - "--cluster_name=c1"
+      - "--cluster=nats://nats3:6222"
+      - "--routes=nats-route://nats1:6222,nats-route://nats2:6222,nats-route://nats3:6222"
+      - "--http_port=8222"
+      - "--js"
+      - "--sd=/data"
+
+
+volumes:
+  pgdata: {}
+  pgadmin: {}
+  nats1: {}
+  nats2: {}
+  nats3: {}
+  nui: {}
