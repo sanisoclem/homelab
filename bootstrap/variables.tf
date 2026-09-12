@@ -109,7 +109,6 @@ variable "truenas_api_key" {
   sensitive   = true
 }
 
-
 variable "s3_access_key" {
   type        = string
   description = "MinIO access key for CNPG backups and the Loki and Tempo chunks"
@@ -191,10 +190,6 @@ variable "budget_client_secret" {
   sensitive   = true
   default     = ""
 }
-
-
-
-
 
 variable "plex_claim_token" {
   type        = string

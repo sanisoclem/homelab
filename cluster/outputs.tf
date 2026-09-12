@@ -1,3 +1,7 @@
+output "egress_nodes" {
+  value = module.cluster.egress_nodes
+}
+
 output "node_ips" {
   value = module.cluster.node_ips
 }

@@ -44,7 +44,7 @@ variable "vm_datastore_id" {
 
 variable "image_datastore_id" {
   type        = string
-  description = "Proxmox datastore the Talos disk image is downloaded to; needs the 'iso' content type"
+  description = "Proxmox datastore the Talos disk image is downloaded to; needs the 'import' content type"
   default     = "local"
 }
 
@@ -111,15 +111,15 @@ variable "bridge" {
 }
 
 variable "vlan_id" {
-  type        = number
-  description = "VLAN tag for the node interfaces; null for an untagged bridge"
-  default     = null
+  type        = string
+  description = "VLAN tag for the node interfaces; empty for an untagged bridge"
+  default     = ""
 }
 
 variable "egress_vlan_id" {
-  type        = number
-  description = "VLAN whose gateway routes out through the site tunnel"
-  default     = null
+  type        = string
+  description = "VLAN whose gateway routes out through the site tunnel; empty for none"
+  default     = ""
 }
 
 variable "egress_gateway" {
@@ -159,15 +159,15 @@ variable "worker_memory_mb" {
 }
 
 variable "egress_worker_vcpu" {
-  type        = number
-  description = "vCPUs for a worker on the egress VLAN; null to size it like any other worker"
-  default     = null
+  type        = string
+  description = "vCPUs for a worker on the egress VLAN; empty to size it like any other worker"
+  default     = ""
 }
 
 variable "egress_worker_memory_mb" {
-  type        = number
-  description = "RAM in MiB for a worker on the egress VLAN; null to size it like any other worker"
-  default     = null
+  type        = string
+  description = "RAM in MiB for a worker on the egress VLAN; empty to size it like any other worker"
+  default     = ""
 }
 
 variable "disk_gb" {

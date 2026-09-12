@@ -34,6 +34,23 @@ resource "random_password" "zitadel_admin" {
   override_special = "!#%*+-=?_@"
 }
 
+resource "random_password" "hempire_db" {
+  length  = 32
+  special = false
+}
+
+resource "kubernetes_secret" "hempire_db" {
+  metadata {
+    name      = "hempire-db"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    username = "hempire"
+    password = random_password.hempire_db.result
+  }
+}
+
 resource "random_password" "zitadel_db" {
   length  = 32
   special = false
@@ -298,7 +315,6 @@ resource "kubernetes_secret" "home_misc" {
   )
 }
 
-
 resource "kubernetes_secret" "plex" {
   metadata {
     name      = "plex"
@@ -319,4 +335,35 @@ resource "kubernetes_secret" "renovate" {
   data = {
     token = var.renovate_token
   }
+}
+
+resource "kubernetes_labels" "egress" {
+  for_each = toset(var.egress_nodes)
+
+  api_version = "v1"
+  kind        = "Node"
+
+  metadata {
+    name = each.key
+  }
+
+  labels = {
+    egress = "vpn"
+  }
+}
+
+resource "kubernetes_node_taint" "egress" {
+  for_each = toset(var.egress_nodes)
+
+  metadata {
+    name = each.key
+  }
+
+  taint {
+    key    = "egress"
+    value  = "vpn"
+    effect = "NoSchedule"
+  }
+
+  force = true
 }

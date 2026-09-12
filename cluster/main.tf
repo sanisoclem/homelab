@@ -1,10 +1,22 @@
+locals {
+  optional_number = { for name, value in {
+    vlan_id                 = var.vlan_id
+    egress_vlan_id          = var.egress_vlan_id
+    egress_worker_vcpu      = var.egress_worker_vcpu
+    egress_worker_memory_mb = var.egress_worker_memory_mb
+  } : name => value == "" ? null : tonumber(value) }
+}
+
 module "cluster" {
   source = "../modules/talos-cluster"
 
-  cluster_name       = var.cluster_name
-  proxmox_node       = var.proxmox_node
-  talos_version      = var.talos_version
-  kubernetes_version = var.kubernetes_version
+  cluster_name         = var.cluster_name
+  proxmox_node         = var.proxmox_node
+  ssh_host             = replace(replace(var.proxmox_endpoint, "/^https?:///", ""), "/:[0-9]+$/", "")
+  ssh_username         = var.proxmox_ssh_username
+  ssh_private_key_path = var.proxmox_ssh_private_key
+  talos_version        = var.talos_version
+  kubernetes_version   = var.kubernetes_version
 
   controlplane_ips = var.controlplane_ips
   worker_ips       = var.worker_ips
@@ -12,8 +24,8 @@ module "cluster" {
   gateway          = var.node_gateway
   nameservers      = var.nameservers
   bridge           = var.bridge
-  vlan_id          = var.vlan_id
-  egress_vlan_id   = var.egress_vlan_id
+  vlan_id          = local.optional_number["vlan_id"]
+  egress_vlan_id   = local.optional_number["egress_vlan_id"]
   egress_gateway   = var.egress_gateway
   egress_workers   = var.egress_workers
 
@@ -21,8 +33,8 @@ module "cluster" {
   controlplane_memory_mb  = var.controlplane_memory_mb
   worker_vcpu             = var.worker_vcpu
   worker_memory_mb        = var.worker_memory_mb
-  egress_worker_vcpu      = var.egress_worker_vcpu
-  egress_worker_memory_mb = var.egress_worker_memory_mb
+  egress_worker_vcpu      = local.optional_number["egress_worker_vcpu"]
+  egress_worker_memory_mb = local.optional_number["egress_worker_memory_mb"]
   disk_gb                 = var.disk_gb
 
   vm_datastore_id      = var.vm_datastore_id

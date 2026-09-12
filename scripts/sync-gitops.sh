@@ -89,7 +89,8 @@ def patch(path, values):
 
 
 patch(f'{platform_dir}/config/cluster-config.yaml', platform)
-patch(f'{hempire_dir}/config/cluster-config.yaml', {**auth, 'DNS_ZONE': cluster['hempire_dns_zone']})
+patch(f'{hempire_dir}/config/cluster-config.yaml',
+      {**auth, 'DNS_ZONE': cluster['hempire_dns_zone'], 'S3_ENDPOINT': cluster['s3_endpoint']})
 patch(f'{home_dir}/config/cluster-config.yaml', home)
 PYEOF
 

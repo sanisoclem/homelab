@@ -34,6 +34,12 @@ variable "platform_path" {
   description = "Local path to a checkout of the platform repo, relative to the root module directory. Its root kustomization is applied once, because Argo CD cannot reconcile the Application that tells it what to reconcile"
 }
 
+variable "egress_nodes" {
+  type        = list(string)
+  description = "Workers holding an interface on the egress VLAN. They are labelled and tainted here rather than in the machine config, because NodeRestriction forbids a worker setting either on itself"
+  default     = []
+}
+
 variable "kubeconfig_path" {
   type        = string
   description = "Where the cluster's kubeconfig is written; the one-shot apply reads it"
@@ -121,7 +127,6 @@ variable "truenas_api_key" {
   }
 }
 
-
 variable "s3_access_key" {
   type        = string
   description = "MinIO access key for the bucket holding CNPG backups and the Loki and Tempo chunks"
@@ -140,7 +145,6 @@ variable "app_secrets" {
   sensitive   = true
   default     = {}
 }
-
 
 variable "plex_claim_token" {
   type        = string

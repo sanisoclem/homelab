@@ -29,6 +29,15 @@ tasks:
       - tofu apply {{.TF_APPLY_ARGS}}
       - ../scripts/merge-credentials.sh
 
+  node:replace:
+    desc: "Rebuild one node from scratch, disk and all (NODE=shokugami-worker-3)"
+    dir: cluster
+    requires:
+      vars: [NODE]
+    cmds:
+      - tofu init
+      - tofu apply -replace='module.cluster.proxmox_virtual_environment_vm.node["{{.NODE}}"]' {{.TF_APPLY_ARGS}}
+
   bootstrap:plan:
     desc: "Plan the source secrets, Argo CD, and the platform root"
     dir: bootstrap

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# best effort
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

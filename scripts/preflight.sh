@@ -19,7 +19,6 @@ for name in TF_VAR_proxmox_endpoint TF_VAR_proxmox_node TF_VAR_proxmox_api_token
   require "$name"
 done
 
-
 if [ -n "${TF_VAR_proxmox_endpoint:-}" ] && [ -n "${TF_VAR_proxmox_api_token:-}" ]; then
   case "${TF_VAR_proxmox_api_token}" in
     *@*!*=*) ;;
@@ -57,7 +56,7 @@ if content not in (match.get("content") or "").split(","):
 ' 2>&1
     }
 
-    for pair in "${TF_VAR_image_datastore_id:-local}:iso" \
+    for pair in "${TF_VAR_image_datastore_id:-local}:import" \
       "${TF_VAR_snippet_datastore_id:-local}:snippets" \
       "${TF_VAR_vm_datastore_id}:images"; do
       if problem=$(check_content "${pair%:*}" "${pair##*:}"); then :; else
@@ -76,6 +75,14 @@ if [ -n "${TF_VAR_proxmox_endpoint:-}" ]; then
 
   ssh "${ssh_opts[@]}" "$ssh_user@$host" true >/dev/null 2>&1 ||
     missing+=("cannot ssh to $ssh_user@$host; the provider uploads machine configs over ssh, not the API")
+
+  if [ -z "${TF_VAR_proxmox_ssh_private_key:-}" ]; then
+    ssh-add -L >/dev/null 2>&1 ||
+      missing+=("TF_VAR_proxmox_ssh_private_key is unset and ssh-agent holds no identities; the provider reads neither ~/.ssh/config nor a default key file, so a working \`ssh\` here proves nothing")
+  else
+    key="${TF_VAR_proxmox_ssh_private_key/#\~/$HOME}"
+    [ -r "$key" ] || missing+=("TF_VAR_proxmox_ssh_private_key points at '$key', which is not readable")
+  fi
 fi
 
 if [ -n "${TF_VAR_nas_host:-}" ]; then

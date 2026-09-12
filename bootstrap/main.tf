@@ -1,7 +1,16 @@
+data "terraform_remote_state" "cluster" {
+  backend = "local"
+
+  config = {
+    path = "${path.module}/../cluster/terraform.tfstate"
+  }
+}
+
 module "bootstrap" {
   source = "../modules/cluster-bootstrap"
 
   kubeconfig_path      = var.kubeconfig_path
+  egress_nodes         = data.terraform_remote_state.cluster.outputs.egress_nodes
   argocd_chart_version = var.argocd_chart_version
 
   gitops_repos = {
@@ -37,7 +46,6 @@ module "bootstrap" {
   truenas_api_key = var.truenas_api_key
   s3_access_key   = var.s3_access_key
   s3_secret_key   = var.s3_secret_key
-
 
   renovate_token      = var.renovate_token
   plex_claim_token    = var.plex_claim_token

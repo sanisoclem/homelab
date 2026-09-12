@@ -32,6 +32,9 @@ locals {
     )
   }
 
+  image_file   = "talos-${var.talos_version}-${substr(talos_image_factory_schematic.this.id, 0, 8)}-nocloud-amd64.raw"
+  ssh_identity = var.ssh_private_key_path == "" ? "" : "-i ${pathexpand(var.ssh_private_key_path)}"
+
   node_subnet = "${cidrhost(var.controlplane_ips[0], 0)}/${split("/", var.controlplane_ips[0])[1]}"
 
   node_memory = {
@@ -88,7 +91,7 @@ locals {
 
   controlplane_patch = {
     cluster = {
-      allowSchedulingOnControlPlanes = true
+      allowSchedulingOnControlPlanes = false
       network = {
         cni = {
           name = "flannel"
@@ -136,15 +139,28 @@ data "talos_image_factory_urls" "this" {
   architecture  = "amd64"
 }
 
-resource "proxmox_download_file" "talos" {
-  node_name    = var.proxmox_node
-  datastore_id = var.image_datastore_id
-  content_type = "iso"
+resource "null_resource" "talos_image" {
+  triggers = {
+    file = local.image_file
+    url  = data.talos_image_factory_urls.this.urls.disk_image
+  }
 
-  url                     = data.talos_image_factory_urls.this.urls.disk_image
-  file_name               = "talos-${var.talos_version}-${substr(talos_image_factory_schematic.this.id, 0, 8)}-nocloud-amd64.img"
-  decompression_algorithm = "zst"
-  overwrite               = false
+  provisioner "local-exec" {
+    command = <<-SH
+      set -euo pipefail
+      ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new ${local.ssh_identity} \
+        '${var.ssh_username}@${var.ssh_host}' \
+        'set -eu
+         command -v zstd >/dev/null || { echo "zstd is not installed on the Proxmox host" >&2; exit 1; }
+         mkdir -p "${var.image_import_dir}"
+         dest="${var.image_import_dir}/${local.image_file}"
+         if [ -s "$dest" ]; then echo "image already present"; exit 0; fi
+         rm -f "$dest.partial"
+         curl -fsSL "${data.talos_image_factory_urls.this.urls.disk_image}" | zstd -d -o "$dest.partial"
+         mv "$dest.partial" "$dest"
+         echo "image written to $dest"'
+    SH
+  }
 }
 
 resource "talos_machine_secrets" "this" {
@@ -164,9 +180,9 @@ data "talos_machine_configuration" "node" {
   config_patches = concat(
     [
       yamlencode(local.machine_patch),
-      yamlencode(merge(
-        {
-          machine = {
+      yamlencode({
+        machine = merge(
+          {
             network = {
               hostname    = each.key
               nameservers = var.nameservers
@@ -175,26 +191,20 @@ data "talos_machine_configuration" "node" {
                   {
                     deviceSelector = { hardwareAddr = lower(local.macs[each.key]) }
                     addresses      = [each.value.address]
-                    routes         = each.value.egress == null ? [{ network = "0.0.0.0/0", gateway = var.gateway }] : []
+                    routes         = [{ network = "0.0.0.0/0", gateway = var.gateway }]
                   },
                   each.value.type == "controlplane" ? { vip = { ip = var.controlplane_vip } } : {},
                 )],
                 each.value.egress == null ? [] : [{
                   deviceSelector = { hardwareAddr = lower(local.egress_macs[each.key]) }
                   addresses      = [each.value.egress]
-                  routes         = [{ network = "0.0.0.0/0", gateway = var.egress_gateway }]
                 }],
               )
             }
-          }
-        },
-        each.value.egress == null ? {} : {
-          machine = {
-            nodeLabels = { egress = "vpn" }
-            nodeTaints = { egress = "vpn:NoSchedule" }
-          }
-        },
-      )),
+          },
+          {},
+        )
+      }),
       yamlencode({ apiVersion = "v1alpha1", kind = "HostnameConfig", "$patch" = "delete" }),
     ],
     each.value.type == "controlplane" ? [yamlencode(local.controlplane_patch)] : [],
@@ -215,7 +225,8 @@ resource "proxmox_virtual_environment_file" "machine_config" {
 }
 
 resource "proxmox_virtual_environment_vm" "node" {
-  for_each = local.nodes
+  for_each   = local.nodes
+  depends_on = [null_resource.talos_image]
 
   name      = each.key
   node_name = var.proxmox_node
@@ -244,7 +255,7 @@ resource "proxmox_virtual_environment_vm" "node" {
 
   disk {
     datastore_id = var.vm_datastore_id
-    import_from  = proxmox_download_file.talos.id
+    import_from  = "${var.image_datastore_id}:import/${local.image_file}"
     interface    = "virtio0"
     size         = var.disk_gb
     iothread     = true
@@ -257,7 +268,7 @@ resource "proxmox_virtual_environment_vm" "node" {
       mac_address  = local.macs[each.key]
       vlan_id      = var.vlan_id
       model        = "virtio"
-      enabled      = true
+      enabled      = null
       firewall     = false
       disconnected = false
       mtu          = null
@@ -270,7 +281,7 @@ resource "proxmox_virtual_environment_vm" "node" {
       mac_address  = local.egress_macs[each.key]
       vlan_id      = var.egress_vlan_id
       model        = "virtio"
-      enabled      = true
+      enabled      = null
       firewall     = false
       disconnected = false
       mtu          = null
@@ -324,11 +335,19 @@ resource "talos_machine_configuration_apply" "node" {
   depends_on = [null_resource.api_up]
 }
 
+resource "null_resource" "controlplanes_configured" {
+  triggers = {
+    applied = join(",", [
+      for name, _ in local.controlplanes : talos_machine_configuration_apply.node[name].id
+    ])
+  }
+}
+
 resource "talos_machine_bootstrap" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   node                 = local.ips[local.first_controlplane]
 
-  depends_on = [talos_machine_configuration_apply.node]
+  depends_on = [null_resource.controlplanes_configured]
 }
 
 data "talos_client_configuration" "this" {

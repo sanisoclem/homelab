@@ -88,7 +88,7 @@ variable "vlan_id" {
 
 variable "egress_vlan_id" {
   type        = number
-  description = "VLAN whose gateway routes out through the site tunnel. A worker given an address on it takes its default route there, so nothing it sends reaches the public internet any other way"
+  description = "VLAN that egresses through the site tunnel. A worker given an address on it keeps its ordinary default route on the node subnet; the interface exists so individual pods can be attached to it, which is the only way to use a VLAN that cannot route back to the node subnet"
   default     = null
 }
 
@@ -148,12 +148,35 @@ variable "vm_datastore_id" {
 
 variable "image_datastore_id" {
   type        = string
-  description = "Proxmox datastore the Talos disk image is downloaded to; needs the 'iso' content type"
+  description = "Proxmox datastore the Talos disk image is downloaded to; needs the 'import' content type. Proxmox 9 refuses to import a VM disk from a file stored as 'iso'"
 }
 
 variable "snippet_datastore_id" {
   type        = string
   description = "Proxmox datastore the per-node machine configs are uploaded to; needs the 'snippets' content type, and the provider uploads over SSH rather than the API"
+}
+
+variable "ssh_host" {
+  type        = string
+  description = "Host the provider and this module reach Proxmox on over SSH"
+}
+
+variable "ssh_username" {
+  type        = string
+  description = "User to reach the Proxmox host as"
+  default     = "root"
+}
+
+variable "ssh_private_key_path" {
+  type        = string
+  description = "Private key for that user; empty to rely on a running ssh-agent"
+  default     = ""
+}
+
+variable "image_import_dir" {
+  type        = string
+  description = "Directory backing the image datastore's import content on the Proxmox host. Proxmox refuses to decompress into an import datastore and the Image Factory only publishes zstd, so the image is fetched and decompressed here over SSH rather than by the download-url API"
+  default     = "/var/lib/vz/import"
 }
 
 variable "vm_id_base" {
