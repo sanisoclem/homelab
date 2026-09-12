@@ -85,6 +85,17 @@ resource "kubernetes_secret" "cloudflare" {
   }
 }
 
+resource "kubernetes_secret" "cloudflare_hempire" {
+  metadata {
+    name      = "cloudflare-hempire"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    api-token = var.cloudflare_hempire_api_token
+  }
+}
+
 resource "kubernetes_secret" "zitadel" {
   metadata {
     name      = "zitadel"
@@ -287,19 +298,6 @@ resource "kubernetes_secret" "home_misc" {
   )
 }
 
-resource "kubernetes_secret" "vpn" {
-  metadata {
-    name      = "vpn"
-    namespace = kubernetes_namespace.secrets.metadata[0].name
-  }
-
-  data = {
-    provider              = var.vpn.provider
-    wireguard-private-key = var.vpn.wireguard_private_key
-    wireguard-addresses   = var.vpn.wireguard_addresses
-    server-countries      = var.vpn.server_countries
-  }
-}
 
 resource "kubernetes_secret" "plex" {
   metadata {

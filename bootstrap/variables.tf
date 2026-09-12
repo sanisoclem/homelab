@@ -75,6 +75,13 @@ variable "cloudflare_api_token" {
   sensitive   = true
 }
 
+variable "cloudflare_hempire_api_token" {
+  type        = string
+  description = "Cloudflare API token with Zone:DNS:Edit on the hempire domain"
+  sensitive   = true
+  default     = ""
+}
+
 variable "zitadel_masterkey" {
   type        = string
   description = "Zitadel symmetric-encryption masterkey, exactly 32 chars (generate once: tr -dc A-Za-z0-9 </dev/urandom | head -c 32). NEVER change it while Zitadel is live — everything Zitadel has encrypted becomes unreadable"
@@ -102,12 +109,6 @@ variable "truenas_api_key" {
   sensitive   = true
 }
 
-variable "truenas_ssh_private_key" {
-  type        = string
-  description = "Private key for the TrueNAS operations exposed over SSH rather than the API. Empty if the driver is API-only"
-  sensitive   = true
-  default     = ""
-}
 
 variable "s3_access_key" {
   type        = string
@@ -191,31 +192,9 @@ variable "budget_client_secret" {
   default     = ""
 }
 
-variable "vpn_provider" {
-  type        = string
-  description = "Gluetun VPN_SERVICE_PROVIDER for the download client's egress, e.g. mullvad"
-  default     = ""
-}
 
-variable "vpn_wireguard_private_key" {
-  type        = string
-  description = "WireGuard private key for that provider"
-  sensitive   = true
-  default     = ""
-}
 
-variable "vpn_wireguard_addresses" {
-  type        = string
-  description = "WireGuard interface address the provider assigned, in CIDR form"
-  sensitive   = true
-  default     = ""
-}
 
-variable "vpn_server_countries" {
-  type        = string
-  description = "Comma-separated countries to pick an endpoint from; empty for the provider default"
-  default     = ""
-}
 
 variable "plex_claim_token" {
   type        = string

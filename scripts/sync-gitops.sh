@@ -55,6 +55,7 @@ platform = {
     **auth,
     'HOME_GATEWAY_IP':   cluster['home_gateway_ip'],
     'HOME_ZONE':         cluster['home_dns_zone'],
+    'HEMPIRE_ZONE':      cluster['hempire_dns_zone'],
     'repoURL':           os.environ['PLATFORM_REPO_URL'],
     'hempireRepoURL':    os.environ['HEMPIRE_REPO_URL'],
     'homeRepoURL':       os.environ['HOME_REPO_URL'],
@@ -88,7 +89,7 @@ def patch(path, values):
 
 
 patch(f'{platform_dir}/config/cluster-config.yaml', platform)
-patch(f'{hempire_dir}/config/cluster-config.yaml', auth)
+patch(f'{hempire_dir}/config/cluster-config.yaml', {**auth, 'DNS_ZONE': cluster['hempire_dns_zone']})
 patch(f'{home_dir}/config/cluster-config.yaml', home)
 PYEOF
 

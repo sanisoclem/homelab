@@ -83,6 +83,13 @@ variable "cloudflare_api_token" {
   }
 }
 
+variable "cloudflare_hempire_api_token" {
+  type        = string
+  description = "Cloudflare API token for the hempire zone. cert-manager picks a DNS-01 solver by zone, so a certificate for that domain is issued with this credential rather than the cluster's"
+  sensitive   = true
+  default     = ""
+}
+
 variable "zitadel_masterkey" {
   type        = string
   description = "Zitadel symmetric-encryption masterkey, exactly 32 chars. NEVER change it while Zitadel is live — everything it has encrypted becomes unreadable"
@@ -114,12 +121,6 @@ variable "truenas_api_key" {
   }
 }
 
-variable "truenas_ssh_private_key" {
-  type        = string
-  description = "Private key democratic-csi uses for the few operations TrueNAS exposes over SSH rather than its API. Empty if the driver is configured API-only"
-  sensitive   = true
-  default     = ""
-}
 
 variable "s3_access_key" {
   type        = string
@@ -140,22 +141,6 @@ variable "app_secrets" {
   default     = {}
 }
 
-variable "vpn" {
-  type = object({
-    provider              = string
-    wireguard_private_key = string
-    wireguard_addresses   = string
-    server_countries      = string
-  })
-  description = "Credentials for the VPN the download client egresses through. Gluetun drops every packet that is not the tunnel, so a wrong value here is a stopped download rather than a leak"
-  sensitive   = true
-  default = {
-    provider              = ""
-    wireguard_private_key = ""
-    wireguard_addresses   = ""
-    server_countries      = ""
-  }
-}
 
 variable "plex_claim_token" {
   type        = string

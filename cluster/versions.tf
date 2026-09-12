@@ -37,3 +37,8 @@ provider "proxmox" {
 provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
+
+provider "cloudflare" {
+  alias     = "hempire"
+  api_token = var.cloudflare_hempire_api_token
+}

@@ -19,16 +19,29 @@ for name in TF_VAR_proxmox_endpoint TF_VAR_proxmox_node TF_VAR_proxmox_api_token
   require "$name"
 done
 
-api() {
-  curl -sS --fail-with-body --max-time 10 \
-    ${TF_VAR_proxmox_insecure:+-k} \
-    -H "Authorization: PVEAPIToken=${TF_VAR_proxmox_api_token}" \
-    "${TF_VAR_proxmox_endpoint%/}/api2/json$1"
-}
 
 if [ -n "${TF_VAR_proxmox_endpoint:-}" ] && [ -n "${TF_VAR_proxmox_api_token:-}" ]; then
-  if ! storages=$(api "/nodes/${TF_VAR_proxmox_node}/storage" 2>/dev/null); then
-    missing+=("cannot reach the Proxmox API at ${TF_VAR_proxmox_endpoint} as this token")
+  case "${TF_VAR_proxmox_api_token}" in
+    *@*!*=*) ;;
+    *) missing+=("TF_VAR_proxmox_api_token is not user@realm!tokenid=uuid; Proxmox prints the id and the value separately and both are needed") ;;
+  esac
+
+  status=$(curl -sS -o /tmp/pve-probe.$$ -w '%{http_code}' --max-time 10 \
+    ${TF_VAR_proxmox_insecure:+-k} \
+    -H "Authorization: PVEAPIToken=${TF_VAR_proxmox_api_token}" \
+    "${TF_VAR_proxmox_endpoint%/}/api2/json/nodes/${TF_VAR_proxmox_node}/storage" 2>/dev/null || echo 000)
+  storages=$(cat /tmp/pve-probe.$$ 2>/dev/null); rm -f /tmp/pve-probe.$$
+
+  if [ "$status" = 000 ]; then
+    missing+=("no response from ${TF_VAR_proxmox_endpoint} (dns, firewall or the wrong port)")
+  elif [ "$status" = 401 ]; then
+    missing+=("Proxmox rejected the token (401): check the id, the value, and that the token is not expired")
+  elif [ "$status" = 403 ]; then
+    missing+=("Proxmox accepted the token but denied it (403): it needs Datastore.Audit on / or --privsep 0")
+  elif [ "$status" = 500 ] || [ "$status" = 596 ]; then
+    missing+=("Proxmox returned $status for node '${TF_VAR_proxmox_node}': is that the right node name?")
+  elif [ "$status" != 200 ]; then
+    missing+=("Proxmox API returned HTTP $status")
   else
     check_content() {
       local store="$1" content="$2"

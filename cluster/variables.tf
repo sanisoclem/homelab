@@ -116,6 +116,24 @@ variable "vlan_id" {
   default     = null
 }
 
+variable "egress_vlan_id" {
+  type        = number
+  description = "VLAN whose gateway routes out through the site tunnel"
+  default     = null
+}
+
+variable "egress_gateway" {
+  type        = string
+  description = "Default gateway on the egress VLAN"
+  default     = ""
+}
+
+variable "egress_workers" {
+  type        = map(string)
+  description = "Workers given a second interface on the egress VLAN, as worker number => address in CIDR form"
+  default     = {}
+}
+
 variable "controlplane_vcpu" {
   type        = number
   description = "vCPUs given to each control plane node"
@@ -138,6 +156,18 @@ variable "worker_memory_mb" {
   type        = number
   description = "RAM in MiB given to each worker node"
   default     = 10240
+}
+
+variable "egress_worker_vcpu" {
+  type        = number
+  description = "vCPUs for a worker on the egress VLAN; null to size it like any other worker"
+  default     = null
+}
+
+variable "egress_worker_memory_mb" {
+  type        = number
+  description = "RAM in MiB for a worker on the egress VLAN; null to size it like any other worker"
+  default     = null
 }
 
 variable "disk_gb" {
@@ -182,13 +212,39 @@ variable "parent_domain" {
 
 variable "cluster_subdomain" {
   type        = string
-  description = "Cluster's label under parent_domain; services live at *.<sub>.<parent_domain>"
+  description = "Cluster's label under parent_domain; services live at *.<sub>.<parent_domain>. Empty to put them directly at *.<parent_domain>"
+  default     = ""
 }
 
 variable "cloudflare_api_token" {
   type        = string
   description = "Cloudflare API token with Zone:Read and Zone:DNS:Edit on parent_domain, for the wildcard record here and cert-manager's DNS-01 challenges in-cluster"
   sensitive   = true
+}
+
+variable "home_subdomain" {
+  type        = string
+  description = "Label under the cluster zone the home applications live at. They sit a label deeper than the platform because the two are served by different gateways on different addresses, and a wildcard can only point at one"
+  default     = "svc"
+}
+
+variable "hempire_domain" {
+  type        = string
+  description = "Registered domain the hempire environments keep their hostnames on. A different Cloudflare account from parent_domain, hence a second token"
+  default     = ""
+}
+
+variable "hempire_subdomain" {
+  type        = string
+  description = "Label under hempire_domain the hempire environments live at; empty to put them directly at *.<hempire_domain>"
+  default     = ""
+}
+
+variable "cloudflare_hempire_api_token" {
+  type        = string
+  description = "Cloudflare API token with Zone:Read and Zone:DNS:Edit on hempire_domain. Used for that wildcard record and, in cluster, for the DNS-01 solver selected for that zone"
+  sensitive   = true
+  default     = ""
 }
 
 variable "letsencrypt_email" {

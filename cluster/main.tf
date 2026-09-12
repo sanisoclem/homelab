@@ -13,12 +13,17 @@ module "cluster" {
   nameservers      = var.nameservers
   bridge           = var.bridge
   vlan_id          = var.vlan_id
+  egress_vlan_id   = var.egress_vlan_id
+  egress_gateway   = var.egress_gateway
+  egress_workers   = var.egress_workers
 
-  controlplane_vcpu      = var.controlplane_vcpu
-  controlplane_memory_mb = var.controlplane_memory_mb
-  worker_vcpu            = var.worker_vcpu
-  worker_memory_mb       = var.worker_memory_mb
-  disk_gb                = var.disk_gb
+  controlplane_vcpu       = var.controlplane_vcpu
+  controlplane_memory_mb  = var.controlplane_memory_mb
+  worker_vcpu             = var.worker_vcpu
+  worker_memory_mb        = var.worker_memory_mb
+  egress_worker_vcpu      = var.egress_worker_vcpu
+  egress_worker_memory_mb = var.egress_worker_memory_mb
+  disk_gb                 = var.disk_gb
 
   vm_datastore_id      = var.vm_datastore_id
   image_datastore_id   = var.image_datastore_id
@@ -42,6 +47,11 @@ resource "local_sensitive_file" "talosconfig" {
   file_permission = "0600"
 }
 
+locals {
+  dns_zone     = var.cluster_subdomain == "" ? var.parent_domain : "${var.cluster_subdomain}.${var.parent_domain}"
+  hempire_zone = var.hempire_subdomain == "" ? var.hempire_domain : "${var.hempire_subdomain}.${var.hempire_domain}"
+}
+
 data "cloudflare_zone" "parent" {
   filter = {
     name = var.parent_domain
@@ -50,7 +60,7 @@ data "cloudflare_zone" "parent" {
 
 resource "cloudflare_dns_record" "wildcard" {
   zone_id = data.cloudflare_zone.parent.zone_id
-  name    = "*.${var.cluster_subdomain}.${var.parent_domain}"
+  name    = "*.${local.dns_zone}"
   type    = "A"
   content = var.gateway_ip
   ttl     = 300
@@ -59,9 +69,30 @@ resource "cloudflare_dns_record" "wildcard" {
 
 resource "cloudflare_dns_record" "home_wildcard" {
   zone_id = data.cloudflare_zone.parent.zone_id
-  name    = "*.home.${var.cluster_subdomain}.${var.parent_domain}"
+  name    = "*.${var.home_subdomain}.${local.dns_zone}"
   type    = "A"
   content = var.home_gateway_ip
+  ttl     = 300
+  proxied = false
+}
+
+data "cloudflare_zone" "hempire" {
+  count    = var.hempire_domain == "" ? 0 : 1
+  provider = cloudflare.hempire
+
+  filter = {
+    name = var.hempire_domain
+  }
+}
+
+resource "cloudflare_dns_record" "hempire_wildcard" {
+  count    = var.hempire_domain == "" ? 0 : 1
+  provider = cloudflare.hempire
+
+  zone_id = data.cloudflare_zone.hempire[0].zone_id
+  name    = "*.${local.hempire_zone}"
+  type    = "A"
+  content = var.gateway_ip
   ttl     = 300
   proxied = false
 }

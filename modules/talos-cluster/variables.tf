@@ -86,6 +86,24 @@ variable "vlan_id" {
   default     = null
 }
 
+variable "egress_vlan_id" {
+  type        = number
+  description = "VLAN whose gateway routes out through the site tunnel. A worker given an address on it takes its default route there, so nothing it sends reaches the public internet any other way"
+  default     = null
+}
+
+variable "egress_gateway" {
+  type        = string
+  description = "Default gateway on the egress VLAN"
+  default     = ""
+}
+
+variable "egress_workers" {
+  type        = map(string)
+  description = "Workers that get a second interface on the egress VLAN, as worker number => address in CIDR form. They are labelled and tainted egress=vpn, so only workloads that ask for it land there"
+  default     = {}
+}
+
 variable "controlplane_vcpu" {
   type        = number
   description = "vCPUs given to each control plane node"
@@ -104,6 +122,18 @@ variable "worker_vcpu" {
 variable "worker_memory_mb" {
   type        = number
   description = "RAM in MiB given to each worker node"
+}
+
+variable "egress_worker_vcpu" {
+  type        = number
+  description = "vCPUs for a worker on the egress VLAN. Null to size it like any other worker"
+  default     = null
+}
+
+variable "egress_worker_memory_mb" {
+  type        = number
+  description = "RAM in MiB for a worker on the egress VLAN. Only the workloads that need the tunnel are allowed onto it, so it is usually much smaller than a general worker. Null to size it like any other worker"
+  default     = null
 }
 
 variable "disk_gb" {

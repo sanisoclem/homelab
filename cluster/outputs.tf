@@ -19,7 +19,11 @@ output "home_gateway_ip" {
 }
 
 output "home_dns_zone" {
-  value = "home.${var.cluster_subdomain}.${var.parent_domain}"
+  value = "${var.home_subdomain}.${local.dns_zone}"
+}
+
+output "hempire_dns_zone" {
+  value = local.hempire_zone
 }
 
 output "metallb_pool" {
@@ -27,7 +31,7 @@ output "metallb_pool" {
 }
 
 output "dns_zone" {
-  value = "${var.cluster_subdomain}.${var.parent_domain}"
+  value = local.dns_zone
 }
 
 output "letsencrypt_email" {

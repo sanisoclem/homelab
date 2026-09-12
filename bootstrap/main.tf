@@ -22,10 +22,11 @@ module "bootstrap" {
   github_user = var.github_user
   ghcr_token  = var.ghcr_token
 
-  sso_client_id        = var.sso_client_id
-  sso_client_secret    = var.sso_client_secret
-  cloudflare_api_token = var.cloudflare_api_token
-  zitadel_masterkey    = var.zitadel_masterkey
+  sso_client_id                = var.sso_client_id
+  sso_client_secret            = var.sso_client_secret
+  cloudflare_api_token         = var.cloudflare_api_token
+  cloudflare_hempire_api_token = var.cloudflare_hempire_api_token
+  zitadel_masterkey            = var.zitadel_masterkey
 
   nas = {
     host         = var.nas_host
@@ -33,17 +34,10 @@ module "bootstrap" {
     iscsi_portal = var.nas_iscsi_portal
   }
 
-  truenas_api_key         = var.truenas_api_key
-  truenas_ssh_private_key = var.truenas_ssh_private_key
-  s3_access_key           = var.s3_access_key
-  s3_secret_key           = var.s3_secret_key
+  truenas_api_key = var.truenas_api_key
+  s3_access_key   = var.s3_access_key
+  s3_secret_key   = var.s3_secret_key
 
-  vpn = {
-    provider              = var.vpn_provider
-    wireguard_private_key = var.vpn_wireguard_private_key
-    wireguard_addresses   = var.vpn_wireguard_addresses
-    server_countries      = var.vpn_server_countries
-  }
 
   renovate_token      = var.renovate_token
   plex_claim_token    = var.plex_claim_token

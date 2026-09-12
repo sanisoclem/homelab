@@ -1,12 +1,17 @@
 locals {
   controlplanes = {
     for index, address in var.controlplane_ips :
-    "${var.cluster_name}-cp-${index + 1}" => { type = "controlplane", address = address, index = index }
+    "${var.cluster_name}-cp-${index + 1}" => { type = "controlplane", address = address, index = index, egress = null }
   }
 
   workers = {
     for index, address in var.worker_ips :
-    "${var.cluster_name}-worker-${index + 1}" => { type = "worker", address = address, index = length(var.controlplane_ips) + index }
+    "${var.cluster_name}-worker-${index + 1}" => {
+      type    = "worker"
+      address = address
+      index   = length(var.controlplane_ips) + index
+      egress  = lookup(var.egress_workers, tostring(index + 1), null)
+    }
   }
 
   nodes = merge(local.controlplanes, local.workers)
@@ -20,6 +25,30 @@ locals {
     )
   }
 
+  egress_macs = {
+    for name, _ in local.nodes : name => format(
+      "BC:24:11:%s:%s:%s",
+      substr(sha1("${name}-egress"), 0, 2), substr(sha1("${name}-egress"), 2, 2), substr(sha1("${name}-egress"), 4, 2)
+    )
+  }
+
+  node_subnet = "${cidrhost(var.controlplane_ips[0], 0)}/${split("/", var.controlplane_ips[0])[1]}"
+
+  node_memory = {
+    for name, node in local.nodes : name => (
+      node.type == "controlplane" ? var.controlplane_memory_mb :
+      node.egress != null && var.egress_worker_memory_mb != null ? var.egress_worker_memory_mb :
+      var.worker_memory_mb
+    )
+  }
+
+  node_vcpu = {
+    for name, node in local.nodes : name => (
+      node.type == "controlplane" ? var.controlplane_vcpu :
+      node.egress != null && var.egress_worker_vcpu != null ? var.egress_worker_vcpu :
+      var.worker_vcpu
+    )
+  }
   ips           = { for name, node in local.nodes : name => split("/", node.address)[0] }
   endpoint      = "https://${var.controlplane_vip}:6443"
   api_addresses = concat([var.controlplane_vip], [for name, _ in local.controlplanes : local.ips[name]])
@@ -44,6 +73,9 @@ locals {
         config = local.dockerhub_config
       }
       kubelet = {
+        nodeIP = {
+          validSubnets = [local.node_subnet]
+        }
         extraMounts = [{
           destination = "/var/mnt/local-path-provisioner"
           type        = "bind"
@@ -57,6 +89,14 @@ locals {
   controlplane_patch = {
     cluster = {
       allowSchedulingOnControlPlanes = true
+      network = {
+        cni = {
+          name = "flannel"
+          flannel = {
+            extraArgs = ["--iface-can-reach=${var.gateway}"]
+          }
+        }
+      }
       apiServer = {
         certSANs = local.api_addresses
         admissionControl = [{
@@ -124,22 +164,37 @@ data "talos_machine_configuration" "node" {
   config_patches = concat(
     [
       yamlencode(local.machine_patch),
-      yamlencode({
-        machine = {
-          network = {
-            hostname    = each.key
-            nameservers = var.nameservers
-            interfaces = [merge(
-              {
-                deviceSelector = { busPath = "0*" }
-                addresses      = [each.value.address]
-                routes         = [{ network = "0.0.0.0/0", gateway = var.gateway }]
-              },
-              each.value.type == "controlplane" ? { vip = { ip = var.controlplane_vip } } : {},
-            )]
+      yamlencode(merge(
+        {
+          machine = {
+            network = {
+              hostname    = each.key
+              nameservers = var.nameservers
+              interfaces = concat(
+                [merge(
+                  {
+                    deviceSelector = { hardwareAddr = lower(local.macs[each.key]) }
+                    addresses      = [each.value.address]
+                    routes         = each.value.egress == null ? [{ network = "0.0.0.0/0", gateway = var.gateway }] : []
+                  },
+                  each.value.type == "controlplane" ? { vip = { ip = var.controlplane_vip } } : {},
+                )],
+                each.value.egress == null ? [] : [{
+                  deviceSelector = { hardwareAddr = lower(local.egress_macs[each.key]) }
+                  addresses      = [each.value.egress]
+                  routes         = [{ network = "0.0.0.0/0", gateway = var.egress_gateway }]
+                }],
+              )
+            }
           }
-        }
-      }),
+        },
+        each.value.egress == null ? {} : {
+          machine = {
+            nodeLabels = { egress = "vpn" }
+            nodeTaints = { egress = "vpn:NoSchedule" }
+          }
+        },
+      )),
       yamlencode({ apiVersion = "v1alpha1", kind = "HostnameConfig", "$patch" = "delete" }),
     ],
     each.value.type == "controlplane" ? [yamlencode(local.controlplane_patch)] : [],
@@ -170,12 +225,12 @@ resource "proxmox_virtual_environment_vm" "node" {
   bios      = "seabios"
 
   memory {
-    dedicated = each.value.type == "controlplane" ? var.controlplane_memory_mb : var.worker_memory_mb
-    floating  = each.value.type == "controlplane" ? var.controlplane_memory_mb : var.worker_memory_mb
+    dedicated = local.node_memory[each.key]
+    floating  = local.node_memory[each.key]
   }
 
   cpu {
-    cores = each.value.type == "controlplane" ? var.controlplane_vcpu : var.worker_vcpu
+    cores = local.node_vcpu[each.key]
     type  = "host"
   }
 
@@ -196,19 +251,34 @@ resource "proxmox_virtual_environment_vm" "node" {
     discard      = "on"
   }
 
-  network_device = [{
-    bridge       = var.bridge
-    mac_address  = local.macs[each.key]
-    vlan_id      = var.vlan_id
-    model        = "virtio"
-    enabled      = true
-    firewall     = false
-    disconnected = false
-    mtu          = null
-    queues       = null
-    rate_limit   = null
-    trunks       = null
-  }]
+  network_device = concat(
+    [{
+      bridge       = var.bridge
+      mac_address  = local.macs[each.key]
+      vlan_id      = var.vlan_id
+      model        = "virtio"
+      enabled      = true
+      firewall     = false
+      disconnected = false
+      mtu          = null
+      queues       = null
+      rate_limit   = null
+      trunks       = null
+    }],
+    each.value.egress == null ? [] : [{
+      bridge       = var.bridge
+      mac_address  = local.egress_macs[each.key]
+      vlan_id      = var.egress_vlan_id
+      model        = "virtio"
+      enabled      = true
+      firewall     = false
+      disconnected = false
+      mtu          = null
+      queues       = null
+      rate_limit   = null
+      trunks       = null
+    }],
+  )
 
   initialization {
     datastore_id      = var.vm_datastore_id
