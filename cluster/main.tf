@@ -56,3 +56,12 @@ resource "cloudflare_dns_record" "wildcard" {
   ttl     = 300
   proxied = false
 }
+
+resource "cloudflare_dns_record" "home_wildcard" {
+  zone_id = data.cloudflare_zone.parent.zone_id
+  name    = "*.home.${var.cluster_subdomain}.${var.parent_domain}"
+  type    = "A"
+  content = var.home_gateway_ip
+  ttl     = 300
+  proxied = false
+}

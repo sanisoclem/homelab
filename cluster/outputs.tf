@@ -14,6 +14,14 @@ output "gateway_ip" {
   value = var.gateway_ip
 }
 
+output "home_gateway_ip" {
+  value = var.home_gateway_ip
+}
+
+output "home_dns_zone" {
+  value = "home.${var.cluster_subdomain}.${var.parent_domain}"
+}
+
 output "metallb_pool" {
   value = var.metallb_pool
 }

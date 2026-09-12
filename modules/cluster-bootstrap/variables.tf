@@ -139,3 +139,41 @@ variable "app_secrets" {
   sensitive   = true
   default     = {}
 }
+
+variable "vpn" {
+  type = object({
+    provider              = string
+    wireguard_private_key = string
+    wireguard_addresses   = string
+    server_countries      = string
+  })
+  description = "Credentials for the VPN the download client egresses through. Gluetun drops every packet that is not the tunnel, so a wrong value here is a stopped download rather than a leak"
+  sensitive   = true
+  default = {
+    provider              = ""
+    wireguard_private_key = ""
+    wireguard_addresses   = ""
+    server_countries      = ""
+  }
+}
+
+variable "plex_claim_token" {
+  type        = string
+  description = "Plex claim token from plex.tv/claim, valid for four minutes. Only needed the first time a server is registered"
+  sensitive   = true
+  default     = ""
+}
+
+variable "immichframe_api_key" {
+  type        = string
+  description = "Immich API key ImmichFrame reads the library with. Generated inside Immich, so it cannot be created here"
+  sensitive   = true
+  default     = ""
+}
+
+variable "renovate_token" {
+  type        = string
+  description = "GitHub PAT the in-cluster Renovate opens pull requests with. Fine-grained, Contents and Pull requests write on every repo it should maintain — it discovers repositories from what the token can see, so the token is the scope"
+  sensitive   = true
+  default     = ""
+}

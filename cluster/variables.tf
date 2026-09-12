@@ -165,6 +165,11 @@ variable "gateway_ip" {
   description = "Address MetalLB gives the nginx Gateway; the wildcard DNS record points here. Must fall inside metallb_pool"
 }
 
+variable "home_gateway_ip" {
+  type        = string
+  description = "Address MetalLB gives the home Gateway; the *.home wildcard record points here. Must fall inside metallb_pool and differ from gateway_ip"
+}
+
 variable "metallb_pool" {
   type        = string
   description = "Range MetalLB allocates LoadBalancer addresses from, as first-last. Must sit outside whatever the DHCP server hands out and outside the node and VIP addresses"

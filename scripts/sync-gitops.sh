@@ -21,6 +21,11 @@ CLUSTER_OUT="$cluster_out" \
   PLATFORM_REPO_URL="${TF_VAR_platform_repo_url:?}" \
   HEMPIRE_REPO_URL="${TF_VAR_hempire_repo_url:?}" \
   HOME_REPO_URL="${TF_VAR_home_repo_url:?}" \
+NAS_MEDIA_PATH="${NAS_MEDIA_PATH:?}" \
+NAS_PHOTOS_PATH="${NAS_PHOTOS_PATH:?}" \
+NAS_KNOWLEDGE_PATH="${NAS_KNOWLEDGE_PATH:?}" \
+NAS_EMBY_PATH="${NAS_EMBY_PATH:?}" \
+S3_BACKUP_BUCKET="${S3_BACKUP_BUCKET:?}" \
   python3 - "$PLATFORM_DIR" "$HEMPIRE_DIR" "$HOME_DIR" <<'PYEOF'
 import json, os, re, sys
 
@@ -35,8 +40,21 @@ auth = {
     'AUTH_JWKS_URI': f'https://a.{zone}/oauth/v2/keys',
 }
 
+home = {
+    'HOME_ZONE':          cluster['home_dns_zone'],
+    'NAS_HOST':           cluster['nas_host'],
+    'NAS_MEDIA_PATH':     os.environ['NAS_MEDIA_PATH'],
+    'NAS_PHOTOS_PATH':    os.environ['NAS_PHOTOS_PATH'],
+    'NAS_KNOWLEDGE_PATH': os.environ['NAS_KNOWLEDGE_PATH'],
+    'NAS_EMBY_PATH':      os.environ['NAS_EMBY_PATH'],
+    'S3_ENDPOINT':        cluster['s3_endpoint'],
+    'S3_BACKUP_BUCKET':   os.environ['S3_BACKUP_BUCKET'],
+}
+
 platform = {
     **auth,
+    'HOME_GATEWAY_IP':   cluster['home_gateway_ip'],
+    'HOME_ZONE':         cluster['home_dns_zone'],
     'repoURL':           os.environ['PLATFORM_REPO_URL'],
     'hempireRepoURL':    os.environ['HEMPIRE_REPO_URL'],
     'homeRepoURL':       os.environ['HOME_REPO_URL'],
@@ -70,8 +88,8 @@ def patch(path, values):
 
 
 patch(f'{platform_dir}/config/cluster-config.yaml', platform)
-for directory in (hempire_dir, home_dir):
-    patch(f'{directory}/config/cluster-config.yaml', auth)
+patch(f'{hempire_dir}/config/cluster-config.yaml', auth)
+patch(f'{home_dir}/config/cluster-config.yaml', home)
 PYEOF
 
 dirty=0

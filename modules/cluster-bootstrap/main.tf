@@ -246,3 +246,79 @@ resource "null_resource" "app_of_apps" {
     command = "kubectl apply -k ${var.platform_path}"
   }
 }
+
+resource "random_password" "home_db" {
+  for_each = toset(["immich", "paperless"])
+
+  length  = 32
+  special = false
+}
+
+resource "random_password" "home_misc" {
+  for_each = toset([
+    "meilisearch-master-key",
+    "karakeep-nextauth-secret",
+    "paperless-secret-key",
+    "couchdb-password",
+  ])
+
+  length  = 48
+  special = false
+}
+
+resource "kubernetes_secret" "home_db" {
+  metadata {
+    name      = "home-db"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = { for name, password in random_password.home_db : name => password.result }
+}
+
+resource "kubernetes_secret" "home_misc" {
+  metadata {
+    name      = "home-misc"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = merge(
+    { for name, password in random_password.home_misc : name => password.result },
+    { immichframe-api-key = var.immichframe_api_key },
+  )
+}
+
+resource "kubernetes_secret" "vpn" {
+  metadata {
+    name      = "vpn"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    provider              = var.vpn.provider
+    wireguard-private-key = var.vpn.wireguard_private_key
+    wireguard-addresses   = var.vpn.wireguard_addresses
+    server-countries      = var.vpn.server_countries
+  }
+}
+
+resource "kubernetes_secret" "plex" {
+  metadata {
+    name      = "plex"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    claim-token = var.plex_claim_token
+  }
+}
+
+resource "kubernetes_secret" "renovate" {
+  metadata {
+    name      = "renovate"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    token = var.renovate_token
+  }
+}

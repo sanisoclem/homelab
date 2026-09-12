@@ -38,6 +38,17 @@ module "bootstrap" {
   s3_access_key           = var.s3_access_key
   s3_secret_key           = var.s3_secret_key
 
+  vpn = {
+    provider              = var.vpn_provider
+    wireguard_private_key = var.vpn_wireguard_private_key
+    wireguard_addresses   = var.vpn_wireguard_addresses
+    server_countries      = var.vpn_server_countries
+  }
+
+  renovate_token      = var.renovate_token
+  plex_claim_token    = var.plex_claim_token
+  immichframe_api_key = var.immichframe_api_key
+
   app_secrets = {
     CRM_ZITADEL_CLIENT_SECRET = var.crm_zitadel_client_secret
     BFF_SESSION_SECRET        = var.bff_session_secret

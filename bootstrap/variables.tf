@@ -190,3 +190,50 @@ variable "budget_client_secret" {
   sensitive   = true
   default     = ""
 }
+
+variable "vpn_provider" {
+  type        = string
+  description = "Gluetun VPN_SERVICE_PROVIDER for the download client's egress, e.g. mullvad"
+  default     = ""
+}
+
+variable "vpn_wireguard_private_key" {
+  type        = string
+  description = "WireGuard private key for that provider"
+  sensitive   = true
+  default     = ""
+}
+
+variable "vpn_wireguard_addresses" {
+  type        = string
+  description = "WireGuard interface address the provider assigned, in CIDR form"
+  sensitive   = true
+  default     = ""
+}
+
+variable "vpn_server_countries" {
+  type        = string
+  description = "Comma-separated countries to pick an endpoint from; empty for the provider default"
+  default     = ""
+}
+
+variable "plex_claim_token" {
+  type        = string
+  description = "Plex claim token from plex.tv/claim, valid for four minutes"
+  sensitive   = true
+  default     = ""
+}
+
+variable "immichframe_api_key" {
+  type        = string
+  description = "Immich API key ImmichFrame reads the library with; generated inside Immich"
+  sensitive   = true
+  default     = ""
+}
+
+variable "renovate_token" {
+  type        = string
+  description = "GitHub PAT the in-cluster Renovate opens pull requests with, fine-grained with Contents and Pull requests write on the gitops repos"
+  sensitive   = true
+  default     = ""
+}
