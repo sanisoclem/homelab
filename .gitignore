@@ -1,0 +1,10 @@
+.env
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.tfstate.lock.info
+__pycache__/
+
+/gitops/
+/platform-gitops/
+/home-gitops/

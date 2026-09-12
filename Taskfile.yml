@@ -1,0 +1,128 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  TF_APPLY_ARGS: ''
+
+tasks:
+  preflight:
+    desc: "Check the host and Proxmox have everything the stack needs (README: Prerequisites)"
+    cmds:
+      - ./scripts/preflight.sh
+
+  cluster:plan:
+    desc: "Plan the Talos VMs and the wildcard DNS record"
+    dir: cluster
+    deps: [preflight]
+    cmds:
+      - tofu init
+      - tofu plan
+
+  cluster:apply:
+    desc: "Create the Talos VMs and the wildcard DNS record"
+    dir: cluster
+    deps: [preflight]
+    cmds:
+      - ../scripts/reap-orphans.sh
+      - tofu init
+      - tofu apply {{.TF_APPLY_ARGS}}
+      - ../scripts/merge-credentials.sh
+
+  bootstrap:plan:
+    desc: "Plan the source secrets, Argo CD, and the platform root"
+    dir: bootstrap
+    cmds:
+      - tofu init
+      - tofu plan
+
+  bootstrap:apply:
+    desc: "Install the source secrets, Argo CD, and the platform root"
+    dir: bootstrap
+    cmds:
+      - tofu init
+      - tofu apply {{.TF_APPLY_ARGS}}
+
+  gitops:sync:
+    desc: "Write the cluster's addresses and names into each repo's cluster-config"
+    cmds:
+      - ./scripts/sync-gitops.sh
+
+  zitadel:seed:
+    desc: "Seed Zitadel, then write its identifiers to the app repo and its secrets to .env"
+    cmds:
+      - ./scripts/seed-zitadel.sh
+
+  argocd:cert:
+    desc: "Restart argocd-server if it is serving a certificate older than the issued one"
+    cmds:
+      - ./scripts/refresh-argocd-cert.sh
+
+  up:
+    desc: "Provision everything from scratch (non-interactive)"
+    aliases: [run]
+    cmds:
+      - task: cluster:apply
+        vars: { TF_APPLY_ARGS: '-auto-approve' }
+      - task: gitops:sync
+      - task: bootstrap:apply
+        vars: { TF_APPLY_ARGS: '-auto-approve' }
+      - task: zitadel:seed
+      - task: argocd:cert
+      - task: summary
+
+  credentials:
+    desc: "Merge this cluster's kubeconfig and talosconfig into the default ones"
+    cmds:
+      - ./scripts/merge-credentials.sh
+
+  kubeconfig:
+    desc: "Print the path to the cluster's kubeconfig"
+    dir: cluster
+    cmds:
+      - tofu output -raw kubeconfig_path
+
+  grafana:password:
+    desc: "Print Grafana's break-glass local admin password"
+    dir: bootstrap
+    cmds:
+      - tofu output -raw grafana_admin_password
+
+  zitadel:password:
+    desc: "Print Zitadel's break-glass console admin password"
+    dir: bootstrap
+    cmds:
+      - tofu output -raw zitadel_admin_password
+
+  summary:
+    desc: "Print what the cluster is and what still needs doing by hand"
+    dir: cluster
+    cmds:
+      - |
+        printf "\n================================================================\n"
+        printf "Cluster is up\n"
+        printf "================================================================\n\n"
+        printf "  endpoint    %s\n" "$(tofu output -raw cluster_endpoint)"
+        printf "  gateway     %s\n" "$(tofu output -raw gateway_ip)"
+        printf "  zone        %s\n" "$(tofu output -raw dns_zone)"
+        printf "  kubeconfig  %s\n" "$(tofu output -raw kubeconfig_path)"
+        printf "  nodes\n"
+        tofu output -json node_ips \
+          | python3 -c 'import json,sys; [print(f"    {k:24} {v}") for k, v in sorted(json.load(sys.stdin).items())]'
+        printf "\n  ----------------------------------------------------------------\n"
+        printf "  Break-glass logins — save these now, they are not shown again\n\n"
+        printf "  Zitadel   https://a.%s\n" "$(tofu output -raw dns_zone)"
+        printf "    user      zitadel-admin@zitadel.a.%s\n" "$(tofu output -raw dns_zone)"
+        printf "    password  %s\n" "$(tofu -chdir=../bootstrap output -raw zitadel_admin_password)"
+        printf "  Grafana   https://grafana.%s\n" "$(tofu output -raw dns_zone)"
+        printf "    user      admin\n"
+        printf "    password  %s\n" "$(tofu -chdir=../bootstrap output -raw grafana_admin_password)"
+        printf "  ----------------------------------------------------------------\n"
+        printf "\nIf gitops:sync or zitadel:seed changed a cluster-config, commit and push it — Argo CD\n"
+        printf "reads the pushed revision, not the local checkout.\n\n"
+
+  destroy:
+    desc: "Tear everything down so `task up` starts from nothing"
+    prompt: "This destroys all six VMs. Volumes on the NAS survive. Continue?"
+    cmds:
+      - ./scripts/destroy.sh

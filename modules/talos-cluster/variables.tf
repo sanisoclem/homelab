@@ -1,0 +1,159 @@
+variable "cluster_name" {
+  type        = string
+  description = "Name of the cluster; also the prefix of every VM's name and hostname"
+}
+
+variable "proxmox_node" {
+  type        = string
+  description = "Proxmox node every VM is created on"
+}
+
+variable "talos_version" {
+  type        = string
+  description = "Talos release to boot and install, e.g. v1.11.2"
+
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+$", var.talos_version))
+    error_message = "talos_version must be a vMAJOR.MINOR.PATCH tag."
+  }
+}
+
+variable "kubernetes_version" {
+  type        = string
+  description = "Kubernetes version Talos installs (empty for the Talos release default)"
+  default     = ""
+}
+
+variable "system_extensions" {
+  type        = list(string)
+  description = "Official Talos system extensions baked into the Image Factory schematic. iscsi-tools and util-linux-tools are what democratic-csi needs to attach an iSCSI volume; qemu-guest-agent lets Proxmox shut a node down cleanly"
+  default = [
+    "siderolabs/iscsi-tools",
+    "siderolabs/util-linux-tools",
+    "siderolabs/qemu-guest-agent",
+  ]
+}
+
+variable "controlplane_ips" {
+  type        = list(string)
+  description = "Static address of each control plane node, in CIDR form. etcd needs an odd number of members to hold quorum"
+
+  validation {
+    condition     = length(var.controlplane_ips) % 2 == 1
+    error_message = "controlplane_ips must hold an odd number of addresses."
+  }
+
+  validation {
+    condition     = alltrue([for ip in var.controlplane_ips : can(cidrnetmask(ip))])
+    error_message = "every controlplane address must carry a prefix length, e.g. 10.11.7.21/24."
+  }
+}
+
+variable "worker_ips" {
+  type        = list(string)
+  description = "Static address of each worker node, in CIDR form. Control planes also run workloads, so an empty list is a valid cluster"
+  default     = []
+
+  validation {
+    condition     = alltrue([for ip in var.worker_ips : can(cidrnetmask(ip))])
+    error_message = "every worker address must carry a prefix length, e.g. 10.11.7.31/24."
+  }
+}
+
+variable "controlplane_vip" {
+  type        = string
+  description = "Shared address the control planes elect a holder for, without a prefix. It is the cluster endpoint, so it survives losing the node that currently answers on it. Must sit outside both the DHCP range and the MetalLB pool"
+}
+
+variable "gateway" {
+  type        = string
+  description = "Default gateway for the node subnet"
+}
+
+variable "nameservers" {
+  type        = list(string)
+  description = "Resolvers the nodes use"
+}
+
+variable "bridge" {
+  type        = string
+  description = "Proxmox bridge every node attaches to"
+}
+
+variable "vlan_id" {
+  type        = number
+  description = "VLAN tag for the node interfaces; null for an untagged bridge"
+  default     = null
+}
+
+variable "controlplane_vcpu" {
+  type        = number
+  description = "vCPUs given to each control plane node"
+}
+
+variable "controlplane_memory_mb" {
+  type        = number
+  description = "RAM in MiB given to each control plane node"
+}
+
+variable "worker_vcpu" {
+  type        = number
+  description = "vCPUs given to each worker node"
+}
+
+variable "worker_memory_mb" {
+  type        = number
+  description = "RAM in MiB given to each worker node"
+}
+
+variable "disk_gb" {
+  type        = number
+  description = "Size of each node's system disk in GiB. It holds the OS and its images; persistent data lives on the NAS, so this does not have to grow with the workload"
+}
+
+variable "vm_datastore_id" {
+  type        = string
+  description = "Proxmox datastore holding the node disks and cloud-init drives, e.g. local-zfs"
+}
+
+variable "image_datastore_id" {
+  type        = string
+  description = "Proxmox datastore the Talos disk image is downloaded to; needs the 'iso' content type"
+}
+
+variable "snippet_datastore_id" {
+  type        = string
+  description = "Proxmox datastore the per-node machine configs are uploaded to; needs the 'snippets' content type, and the provider uploads over SSH rather than the API"
+}
+
+variable "vm_id_base" {
+  type        = number
+  description = "First VM id; nodes take consecutive ids from here, so the range must be free"
+  default     = 900
+}
+
+variable "startup_order" {
+  type        = number
+  description = "Proxmox start order for the nodes. Anything the cluster mounts — the NAS especially — must carry a lower order so it is serving before the nodes look for it"
+  default     = 10
+}
+
+variable "startup_delay" {
+  type        = number
+  description = "Seconds Proxmox waits after starting one node before starting the next"
+  default     = 15
+}
+
+variable "dockerhub_username" {
+  type        = string
+  description = "Docker Hub user for authenticated pulls; anonymous pulls share one rate limit per public IP and this cluster pulls every third-party image directly. Empty to pull anonymously"
+  default     = ""
+  sensitive   = true
+}
+
+variable "dockerhub_token" {
+  type        = string
+  description = "Docker Hub personal access token, public-repo-read scope"
+  default     = ""
+  sensitive   = true
+}
