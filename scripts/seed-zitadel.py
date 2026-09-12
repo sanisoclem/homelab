@@ -441,6 +441,13 @@ def cluster_dns_zone(gitops_dir):
         raise SeedError(f'{config} has no DNS_ZONE')
     return found.group(1)
 
+def zitadel_host(gitops_dir):
+    config = auth_config_path(gitops_dir)
+    found = re.search(r'^\s+ZITADEL_URL:\s*(\S+)\s*$', config.read_text(), re.MULTILINE)
+    if found is None:
+        raise SeedError(f'{config} has no ZITADEL_URL')
+    return found.group(1).strip('"\'').split('://', 1)[-1].rstrip('/')
+
 def environment_names(gitops_dir):
     envs = pathlib.Path(gitops_dir, 'envs')
     names = sorted(child.name for child in envs.iterdir() if child.is_dir())
@@ -533,12 +540,13 @@ def parse_args(argv):
 def main(argv):
     args = parse_args(argv)
     zone = cluster_dns_zone(args.gitops_dir)
+    host = zitadel_host(args.gitops_dir)
     envs = environment_names(args.gitops_dir)
     token = read_token(args.token_file)
     env_file = pathlib.Path(args.env_file)
-    api = Zitadel(args.url, token, host=f'a.{zone}', verify=not args.insecure)
+    api = Zitadel(args.url, token, host=host, verify=not args.insecure)
     outcome = Outcome()
-    print(f'Seeding a.{zone} for environments {", ".join(envs)}')
+    print(f'Seeding {host} for environments {", ".join(envs)} on {zone}')
     seed(api, desired_instance(zone, envs), outcome, read_env_file(env_file))
     report(api, outcome, args.gitops_dir, env_file, token)
     return 0

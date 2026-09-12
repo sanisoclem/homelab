@@ -51,20 +51,32 @@ if [ "$stable" -lt 3 ]; then
   exit 1
 fi
 
-forward_log=$(mktemp)
-kubectl -n zitadel port-forward svc/zitadel :443 >"$forward_log" 2>&1 &
-forward_pid=$!
-trap 'kill "$forward_pid" 2>/dev/null || true' EXIT
+ZITADEL_URL=$(sed -n 's/^[[:space:]]*ZITADEL_URL:[[:space:]]*\(\S*\).*/\1/p' \
+  "$GITOPS_DIR/config/cluster-config.yaml" | head -1 | tr -d '"'"'"'"')
+if [ -z "$ZITADEL_URL" ]; then
+  echo "no ZITADEL_URL in $GITOPS_DIR/config/cluster-config.yaml" >&2
+  exit 1
+fi
 
-port=""
-for _ in $(seq 1 40); do
-  port=$(sed -n 's/^Forwarding from 127\.0\.0\.1:\([0-9]*\).*/\1/p' "$forward_log" | head -1)
-  [ -n "$port" ] && break
-  sleep 0.5
+echo "Waiting for $ZITADEL_URL to answer..."
+for _ in $(seq 1 60); do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$ZITADEL_URL/debug/healthz" 2>/dev/null || echo 000)
+  case "$code" in
+    000) ;;
+    *) break ;;
+  esac
+  sleep 5
 done
-if [ -z "$port" ]; then
-  echo "port-forward to svc/zitadel never came up:" >&2
-  cat "$forward_log" >&2
+if [ "$code" = 000 ]; then
+  cat >&2 <<MSG
+$ZITADEL_URL is not reachable.
+
+Seeding goes through the public name, so this needs DNS, the gateway and a valid
+certificate all working. Check:
+  getent hosts ${ZITADEL_URL#https://}
+  kubectl -n zitadel get certificate zitadel-tls
+  kubectl get gateway -n nginx-gateway
+MSG
   exit 1
 fi
 
@@ -99,8 +111,7 @@ fi
 
 seed_log=$(mktemp)
 ZITADEL_TOKEN="$token" python3 "$SCRIPT_DIR/seed-zitadel.py" \
-  --url "https://127.0.0.1:$port" \
-  --insecure \
+  --url "$ZITADEL_URL" \
   --gitops-dir "$GITOPS_DIR" \
   --env-file "$ENV_FILE" | tee "$seed_log"
 

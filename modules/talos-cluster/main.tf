@@ -79,12 +79,26 @@ locals {
         nodeIP = {
           validSubnets = [local.node_subnet]
         }
-        extraMounts = [{
-          destination = "/var/mnt/local-path-provisioner"
-          type        = "bind"
-          source      = "/var/mnt/local-path-provisioner"
-          options     = ["bind", "rshared", "rw"]
-        }]
+        extraMounts = [
+          {
+            destination = "/var/mnt/local-path-provisioner"
+            type        = "bind"
+            source      = "/var/mnt/local-path-provisioner"
+            options     = ["bind", "rshared", "rw"]
+          },
+          {
+            destination = "/etc/iscsi"
+            type        = "bind"
+            source      = "/etc/iscsi"
+            options     = ["bind", "rshared", "rw"]
+          },
+          {
+            destination = "/var/lib/iscsi"
+            type        = "bind"
+            source      = "/var/lib/iscsi"
+            options     = ["bind", "rshared", "rw"]
+          },
+        ]
       }
     }
   }

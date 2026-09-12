@@ -288,6 +288,8 @@ resource "random_password" "home_misc" {
     "karakeep-nextauth-secret",
     "paperless-secret-key",
     "couchdb-password",
+    "couchdb-secret",
+    "couchdb-erlang-cookie",
   ])
 
   length  = 48
