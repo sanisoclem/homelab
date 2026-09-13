@@ -91,6 +91,33 @@ resource "kubernetes_secret" "grafana_admin" {
   }
 }
 
+resource "random_password" "pgadmin_admin" {
+  length  = 32
+  special = false
+}
+
+resource "kubernetes_secret" "pgadmin" {
+  metadata {
+    name      = "pgadmin"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    clientId      = var.sso_client_id
+    clientSecret  = var.sso_client_secret
+    allowedLogins = var.github_user
+    password      = random_password.pgadmin_admin.result
+
+    pgpass = join("\n", [
+      "hempire-db-rw.env-prod.svc.cluster.local:5432:*:hempire:${random_password.hempire_db.result}",
+      "hempire-db-rw.env-test.svc.cluster.local:5432:*:hempire:${random_password.hempire_db.result}",
+      "zitadel-db-rw.zitadel.svc.cluster.local:5432:*:zitadel:${random_password.zitadel_db.result}",
+      "postgres-rw.home-services.svc.cluster.local:5432:*:immich:${random_password.home_db["immich"].result}",
+      "postgres-rw.home-services.svc.cluster.local:5432:*:paperless:${random_password.home_db["paperless"].result}",
+    ])
+  }
+}
+
 resource "kubernetes_secret" "cloudflare" {
   metadata {
     name      = "cloudflare"

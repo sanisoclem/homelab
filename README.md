@@ -42,6 +42,10 @@ Need to assign static IPs to the VM (proxmox also requires a static IP). My DHCP
 |---|---|
 | Argo CD | `https://cd.<zone>/api/dex/callback` |
 | Grafana | `https://grafana.<zone>/login/github` |
+| pgAdmin | `https://pgadmin.<zone>/oauth2/authorize` |
+
+pgAdmin cannot check GitHub org membership the way Argo CD and Grafana do, so it
+allows only the GitHub logins in `TF_VAR_github_user` (comma-separated).
 
 Turn off short-lived tokens. It seems to be turned on by default for new apps now.
 
