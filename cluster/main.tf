@@ -42,6 +42,8 @@ module "cluster" {
   snippet_datastore_id = var.snippet_datastore_id
   vm_id_base           = var.vm_id_base
   startup_order        = var.startup_order
+  startup_delay        = var.startup_delay
+  startup_down_delay   = var.startup_down_delay
 
   dockerhub_username = var.dockerhub_username
   dockerhub_token    = var.dockerhub_token

@@ -79,6 +79,10 @@ locals {
         nodeIP = {
           validSubnets = [local.node_subnet]
         }
+        extraConfig = {
+          shutdownGracePeriod             = var.kubelet_shutdown_grace_period
+          shutdownGracePeriodCriticalPods = var.kubelet_shutdown_grace_period_critical
+        }
         extraMounts = [
           {
             destination = "/var/mnt/local-path-provisioner"
@@ -311,8 +315,9 @@ resource "proxmox_virtual_environment_vm" "node" {
   }
 
   startup {
-    order    = var.startup_order
-    up_delay = var.startup_delay
+    order      = each.value.type == "controlplane" ? var.startup_order : var.startup_order + var.startup_worker_order_offset
+    up_delay   = var.startup_delay
+    down_delay = var.startup_down_delay
   }
 
   lifecycle {

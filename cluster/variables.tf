@@ -66,6 +66,18 @@ variable "startup_order" {
   default     = 10
 }
 
+variable "startup_delay" {
+  type        = number
+  description = "Seconds Proxmox waits between starting one node and the next"
+  default     = 15
+}
+
+variable "startup_down_delay" {
+  type        = number
+  description = "Seconds Proxmox waits between shutting one node down and the next, so workers drain before the controlplane goes"
+  default     = 60
+}
+
 variable "talos_version" {
   type        = string
   description = "Talos release to boot and install, e.g. v1.11.2"

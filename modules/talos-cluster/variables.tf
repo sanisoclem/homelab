@@ -197,6 +197,30 @@ variable "startup_delay" {
   default     = 15
 }
 
+variable "startup_worker_order_offset" {
+  type        = number
+  description = "Added to startup_order for workers so they start after the controlplanes. Proxmox shuts guests down in reverse order, so this also means workers stop first and the NAS — on a lower order still — stops last"
+  default     = 5
+}
+
+variable "startup_down_delay" {
+  type        = number
+  description = "Seconds Proxmox waits after shutting one node down before shutting the next. Give the workers long enough to drain before the controlplane goes"
+  default     = 60
+}
+
+variable "kubelet_shutdown_grace_period" {
+  type        = string
+  description = "How long kubelet spends evicting pods when the node is halting. Without this Talos halts with kubelet still running and pods are killed outright, which costs CloudNativePG a WAL replay on every start"
+  default     = "90s"
+}
+
+variable "kubelet_shutdown_grace_period_critical" {
+  type        = string
+  description = "Slice of kubelet_shutdown_grace_period reserved for critical pods, which are stopped last"
+  default     = "30s"
+}
+
 variable "dockerhub_username" {
   type        = string
   description = "Docker Hub user for authenticated pulls; anonymous pulls share one rate limit per public IP and this cluster pulls every third-party image directly. Empty to pull anonymously"

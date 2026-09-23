@@ -314,6 +314,7 @@ resource "random_password" "home_misc" {
     "meilisearch-master-key",
     "karakeep-nextauth-secret",
     "paperless-secret-key",
+    "paperless-admin-password",
     "couchdb-password",
     "couchdb-secret",
     "couchdb-erlang-cookie",
