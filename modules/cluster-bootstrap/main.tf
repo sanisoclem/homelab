@@ -20,25 +20,6 @@ resource "kubernetes_namespace" "secrets" {
   }
 }
 
-resource "random_password" "grafana_admin" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "zitadel_admin" {
-  length           = 32
-  min_upper        = 1
-  min_lower        = 1
-  min_numeric      = 1
-  min_special      = 1
-  override_special = "!#%*+-=?_@"
-}
-
-resource "random_password" "hempire_db" {
-  length  = 32
-  special = false
-}
-
 resource "kubernetes_secret" "hempire_db" {
   metadata {
     name      = "hempire-db"
@@ -47,13 +28,8 @@ resource "kubernetes_secret" "hempire_db" {
 
   data = {
     username = "hempire"
-    password = random_password.hempire_db.result
+    password = var.stable_secrets.hempire_db_password
   }
-}
-
-resource "random_password" "zitadel_db" {
-  length  = 32
-  special = false
 }
 
 resource "kubernetes_secret" "argocd_oidc" {
@@ -87,13 +63,8 @@ resource "kubernetes_secret" "grafana_admin" {
   }
 
   data = {
-    password = random_password.grafana_admin.result
+    password = var.stable_secrets.grafana_admin_password
   }
-}
-
-resource "random_password" "pgadmin_admin" {
-  length  = 32
-  special = false
 }
 
 resource "kubernetes_secret" "pgadmin" {
@@ -106,14 +77,14 @@ resource "kubernetes_secret" "pgadmin" {
     clientId      = var.sso_client_id
     clientSecret  = var.sso_client_secret
     allowedLogins = var.github_user
-    password      = random_password.pgadmin_admin.result
+    password      = var.stable_secrets.pgadmin_admin_password
 
     pgpass = join("\n", [
-      "hempire-db-rw.env-prod.svc.cluster.local:5432:*:hempire:${random_password.hempire_db.result}",
-      "hempire-db-rw.env-test.svc.cluster.local:5432:*:hempire:${random_password.hempire_db.result}",
-      "zitadel-db-rw.zitadel.svc.cluster.local:5432:*:zitadel:${random_password.zitadel_db.result}",
-      "postgres-rw.home-services.svc.cluster.local:5432:*:immich:${random_password.home_db["immich"].result}",
-      "postgres-rw.home-services.svc.cluster.local:5432:*:paperless:${random_password.home_db["paperless"].result}",
+      "hempire-db-rw.env-prod.svc.cluster.local:5432:*:hempire:${var.stable_secrets.hempire_db_password}",
+      "hempire-db-rw.env-test.svc.cluster.local:5432:*:hempire:${var.stable_secrets.hempire_db_password}",
+      "zitadel-db-rw.zitadel.svc.cluster.local:5432:*:zitadel:${var.stable_secrets.zitadel_db_password}",
+      "postgres-rw.home-services.svc.cluster.local:5432:*:immich:${var.stable_secrets.immich_db_password}",
+      "postgres-rw.home-services.svc.cluster.local:5432:*:paperless:${var.stable_secrets.paperless_db_password}",
     ])
   }
 }
@@ -148,8 +119,8 @@ resource "kubernetes_secret" "zitadel" {
 
   data = {
     masterkey      = var.zitadel_masterkey
-    admin-password = random_password.zitadel_admin.result
-    db-password    = random_password.zitadel_db.result
+    admin-password = var.stable_secrets.zitadel_admin_password
+    db-password    = var.stable_secrets.zitadel_db_password
   }
 }
 
@@ -162,7 +133,39 @@ locals {
     allowInsecure = true
   }
 
-  csi_configs = {
+  iscsi_target = {
+    targetPortal = var.nas.iscsi_portal
+    targetGroups = [{
+      targetGroupPortalGroup    = 1
+      targetGroupInitiatorGroup = 1
+      targetGroupAuthType       = "None"
+    }]
+    extentInsecureTpc              = true
+    extentDisablePhysicalBlocksize = true
+    extentBlocksize                = 512
+    extentRpm                      = "SSD"
+  }
+
+  block_name_prefixes = {
+    backed    = "csi-b-"
+    transient = "csi-t-"
+  }
+
+  block_csi_configs = {
+    for class, prefix in local.block_name_prefixes : "block-${class}" => {
+      driver         = "freenas-api-iscsi"
+      httpConnection = local.nas_http
+      zfs = {
+        datasetParentName                  = "${var.nas.dataset}/block/${class}/v"
+        detachedSnapshotsDatasetParentName = "${var.nas.dataset}/block/${class}/s"
+        zvolBlocksize                      = "16K"
+        zvolEnableReservation              = false
+      }
+      iscsi = merge(local.iscsi_target, { namePrefix = prefix })
+    }
+  }
+
+  csi_configs = merge(local.block_csi_configs, {
     iscsi = {
       driver         = "freenas-api-iscsi"
       httpConnection = local.nas_http
@@ -205,7 +208,7 @@ locals {
         shareMaprootGroup = "root"
       }
     }
-  }
+  })
 }
 
 resource "kubernetes_secret" "democratic_csi" {
@@ -230,6 +233,32 @@ resource "kubernetes_secret" "s3" {
   data = {
     access-key = var.s3_access_key
     secret-key = var.s3_secret_key
+  }
+}
+
+resource "kubernetes_secret" "volsync_restic" {
+  metadata {
+    name      = "volsync-restic"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    repository-base = "s3:${var.s3_endpoint}/backups/volsync"
+    password        = var.stable_secrets.volsync_restic_password
+    access-key      = var.s3_access_key
+    secret-key      = var.s3_secret_key
+  }
+}
+
+resource "kubernetes_secret" "truenas" {
+  metadata {
+    name      = "truenas"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    host    = var.nas.host
+    api-key = var.truenas_api_key
   }
 }
 
@@ -302,35 +331,16 @@ resource "null_resource" "app_of_apps" {
   }
 }
 
-resource "random_password" "home_db" {
-  for_each = toset(["immich", "paperless"])
-
-  length  = 32
-  special = false
-}
-
-resource "random_password" "home_misc" {
-  for_each = toset([
-    "meilisearch-master-key",
-    "karakeep-nextauth-secret",
-    "paperless-secret-key",
-    "paperless-admin-password",
-    "couchdb-password",
-    "couchdb-secret",
-    "couchdb-erlang-cookie",
-  ])
-
-  length  = 48
-  special = false
-}
-
 resource "kubernetes_secret" "home_db" {
   metadata {
     name      = "home-db"
     namespace = kubernetes_namespace.secrets.metadata[0].name
   }
 
-  data = { for name, password in random_password.home_db : name => password.result }
+  data = {
+    immich    = var.stable_secrets.immich_db_password
+    paperless = var.stable_secrets.paperless_db_password
+  }
 }
 
 resource "kubernetes_secret" "home_misc" {
@@ -339,15 +349,19 @@ resource "kubernetes_secret" "home_misc" {
     namespace = kubernetes_namespace.secrets.metadata[0].name
   }
 
-  data = merge(
-    { for name, password in random_password.home_misc : name => password.result },
-    {
-      immichframe-api-key            = var.immichframe_api_key
-      paperless-r2-access-key-id     = var.paperless_r2_access_key_id
-      paperless-r2-secret-access-key = var.paperless_r2_secret_access_key
-      cloudflare-account-id          = var.cloudflare_account_id
-    },
-  )
+  data = {
+    meilisearch-master-key         = var.stable_secrets.meilisearch_master_key
+    karakeep-nextauth-secret       = var.stable_secrets.karakeep_nextauth_secret
+    paperless-secret-key           = var.stable_secrets.paperless_secret_key
+    paperless-admin-password       = var.stable_secrets.paperless_admin_password
+    couchdb-password               = var.stable_secrets.couchdb_password
+    couchdb-secret                 = var.stable_secrets.couchdb_secret
+    couchdb-erlang-cookie          = var.stable_secrets.couchdb_erlang_cookie
+    immichframe-api-key            = var.immichframe_api_key
+    paperless-r2-access-key-id     = var.paperless_r2_access_key_id
+    paperless-r2-secret-access-key = var.paperless_r2_secret_access_key
+    cloudflare-account-id          = var.cloudflare_account_id
+  }
 }
 
 resource "kubernetes_secret" "plex" {

@@ -231,3 +231,93 @@ variable "renovate_token" {
   sensitive   = true
   default     = ""
 }
+
+variable "grafana_admin_password" {
+  type        = string
+  description = "Grafana break-glass local admin password"
+  sensitive   = true
+}
+
+variable "pgadmin_admin_password" {
+  type        = string
+  description = "pgAdmin break-glass local admin password"
+  sensitive   = true
+}
+
+variable "zitadel_admin_password" {
+  type        = string
+  description = "Zitadel break-glass console admin password. Zitadel stores it on first start, so it must match the restored database"
+  sensitive   = true
+}
+
+variable "hempire_db_password" {
+  type        = string
+  description = "Password of the hempire Postgres role"
+  sensitive   = true
+}
+
+variable "zitadel_db_password" {
+  type        = string
+  description = "Password of the zitadel Postgres role"
+  sensitive   = true
+}
+
+variable "immich_db_password" {
+  type        = string
+  description = "Password of the immich Postgres role"
+  sensitive   = true
+}
+
+variable "paperless_db_password" {
+  type        = string
+  description = "Password of the paperless Postgres role"
+  sensitive   = true
+}
+
+variable "meilisearch_master_key" {
+  type        = string
+  description = "Meilisearch master key"
+  sensitive   = true
+}
+
+variable "karakeep_nextauth_secret" {
+  type        = string
+  description = "Karakeep NextAuth session secret"
+  sensitive   = true
+}
+
+variable "paperless_secret_key" {
+  type        = string
+  description = "Paperless Django secret key"
+  sensitive   = true
+}
+
+variable "paperless_admin_password" {
+  type        = string
+  description = "Paperless admin password, stored in the database on first start"
+  sensitive   = true
+}
+
+variable "couchdb_password" {
+  type        = string
+  description = "CouchDB admin password Obsidian LiveSync clients log in with"
+  sensitive   = true
+}
+
+variable "couchdb_secret" {
+  type        = string
+  description = "CouchDB cookie-auth secret"
+  sensitive   = true
+}
+
+variable "couchdb_erlang_cookie" {
+  type        = string
+  description = "CouchDB Erlang distribution cookie"
+  sensitive   = true
+}
+
+variable "volsync_restic_password" {
+  type        = string
+  description = "Encryption password of every VolSync restic repository. Losing it makes the block-volume backups unreadable"
+  sensitive   = true
+}

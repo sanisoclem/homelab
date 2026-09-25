@@ -127,6 +127,11 @@ variable "truenas_api_key" {
   }
 }
 
+variable "s3_endpoint" {
+  type        = string
+  description = "URL of the S3 store on the NAS that holds the CNPG and VolSync backups"
+}
+
 variable "s3_access_key" {
   type        = string
   description = "MinIO access key for the bucket holding CNPG backups and the Loki and Tempo chunks"
@@ -185,4 +190,31 @@ variable "renovate_token" {
   description = "GitHub PAT the in-cluster Renovate opens pull requests with. Fine-grained, Contents and Pull requests write on every repo it should maintain — it discovers repositories from what the token can see, so the token is the scope"
   sensitive   = true
   default     = ""
+}
+
+variable "stable_secrets" {
+  type = object({
+    grafana_admin_password   = string
+    pgadmin_admin_password   = string
+    zitadel_admin_password   = string
+    hempire_db_password      = string
+    zitadel_db_password      = string
+    immich_db_password       = string
+    paperless_db_password    = string
+    meilisearch_master_key   = string
+    karakeep_nextauth_secret = string
+    paperless_secret_key     = string
+    paperless_admin_password = string
+    couchdb_password         = string
+    couchdb_secret           = string
+    couchdb_erlang_cookie    = string
+    volsync_restic_password  = string
+  })
+  description = "Secrets that restored data depends on. Generated once and kept in .env, so a rebuilt cluster opens the databases, volumes and backups the old one wrote"
+  sensitive   = true
+
+  validation {
+    condition     = alltrue([for secret in values(var.stable_secrets) : length(secret) > 0])
+    error_message = "every stable secret must be set; generate a missing one once with `openssl rand -hex 32` and keep it."
+  }
 }

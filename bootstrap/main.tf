@@ -44,6 +44,7 @@ module "bootstrap" {
   }
 
   truenas_api_key = var.truenas_api_key
+  s3_endpoint     = data.terraform_remote_state.cluster.outputs.s3_endpoint
   s3_access_key   = var.s3_access_key
   s3_secret_key   = var.s3_secret_key
 
@@ -66,5 +67,23 @@ module "bootstrap" {
     BRIDGE_CLIENT_SECRET      = var.bridge_client_secret
     BUDGET_CLIENT_ID          = var.budget_client_id
     BUDGET_CLIENT_SECRET      = var.budget_client_secret
+  }
+
+  stable_secrets = {
+    grafana_admin_password   = var.grafana_admin_password
+    pgadmin_admin_password   = var.pgadmin_admin_password
+    zitadel_admin_password   = var.zitadel_admin_password
+    hempire_db_password      = var.hempire_db_password
+    zitadel_db_password      = var.zitadel_db_password
+    immich_db_password       = var.immich_db_password
+    paperless_db_password    = var.paperless_db_password
+    meilisearch_master_key   = var.meilisearch_master_key
+    karakeep_nextauth_secret = var.karakeep_nextauth_secret
+    paperless_secret_key     = var.paperless_secret_key
+    paperless_admin_password = var.paperless_admin_password
+    couchdb_password         = var.couchdb_password
+    couchdb_secret           = var.couchdb_secret
+    couchdb_erlang_cookie    = var.couchdb_erlang_cookie
+    volsync_restic_password  = var.volsync_restic_password
   }
 }
