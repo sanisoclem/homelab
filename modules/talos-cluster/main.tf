@@ -16,6 +16,8 @@ locals {
 
   nodes = merge(local.controlplanes, local.workers)
 
+  worker_disk_capped = var.worker_disk_read_iops != null || var.worker_disk_read_mbps != null
+
   first_controlplane = sort(keys(local.controlplanes))[0]
 
   macs = {
@@ -278,6 +280,14 @@ resource "proxmox_virtual_environment_vm" "node" {
     size         = var.disk_gb
     iothread     = true
     discard      = "on"
+
+    dynamic "speed" {
+      for_each = each.value.type == "worker" && local.worker_disk_capped ? [1] : []
+      content {
+        iops_read = var.worker_disk_read_iops
+        read      = var.worker_disk_read_mbps
+      }
+    }
   }
 
   network_device = concat(

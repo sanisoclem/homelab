@@ -4,6 +4,8 @@ locals {
     egress_vlan_id          = var.egress_vlan_id
     egress_worker_vcpu      = var.egress_worker_vcpu
     egress_worker_memory_mb = var.egress_worker_memory_mb
+    worker_disk_read_iops   = var.worker_disk_read_iops
+    worker_disk_read_mbps   = var.worker_disk_read_mbps
   } : name => value == "" ? null : tonumber(value) }
 }
 
@@ -36,6 +38,8 @@ module "cluster" {
   egress_worker_vcpu      = local.optional_number["egress_worker_vcpu"]
   egress_worker_memory_mb = local.optional_number["egress_worker_memory_mb"]
   disk_gb                 = var.disk_gb
+  worker_disk_read_iops   = local.optional_number["worker_disk_read_iops"]
+  worker_disk_read_mbps   = local.optional_number["worker_disk_read_mbps"]
 
   vm_datastore_id      = var.vm_datastore_id
   image_datastore_id   = var.image_datastore_id

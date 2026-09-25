@@ -141,6 +141,18 @@ variable "disk_gb" {
   description = "Size of each node's system disk in GiB. It holds the OS and its images; persistent data lives on the NAS, so this does not have to grow with the workload"
 }
 
+variable "worker_disk_read_iops" {
+  type        = number
+  description = "Read IOPS cap on each worker's system disk. The nodes share one host disk, and a worker short on memory re-reads evicted pages fast enough to stall etcd's fsyncs on the controlplane. Null for no cap"
+  default     = null
+}
+
+variable "worker_disk_read_mbps" {
+  type        = number
+  description = "Read MB/s cap on each worker's system disk, for the same reason as worker_disk_read_iops. Null for no cap"
+  default     = null
+}
+
 variable "vm_datastore_id" {
   type        = string
   description = "Proxmox datastore holding the node disks and cloud-init drives, e.g. local-zfs"

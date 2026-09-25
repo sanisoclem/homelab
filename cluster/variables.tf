@@ -188,6 +188,18 @@ variable "disk_gb" {
   default     = 64
 }
 
+variable "worker_disk_read_iops" {
+  type        = string
+  description = "Read IOPS cap on each worker's system disk, so a worker thrashing the shared host disk cannot stall etcd; empty for no cap"
+  default     = ""
+}
+
+variable "worker_disk_read_mbps" {
+  type        = string
+  description = "Read MB/s cap on each worker's system disk; empty for no cap"
+  default     = ""
+}
+
 variable "dockerhub_username" {
   type        = string
   description = "Docker Hub user for authenticated pulls. Empty to pull anonymously and share one rate limit per public IP"

@@ -341,7 +341,12 @@ resource "kubernetes_secret" "home_misc" {
 
   data = merge(
     { for name, password in random_password.home_misc : name => password.result },
-    { immichframe-api-key = var.immichframe_api_key },
+    {
+      immichframe-api-key            = var.immichframe_api_key
+      paperless-r2-access-key-id     = var.paperless_r2_access_key_id
+      paperless-r2-secret-access-key = var.paperless_r2_secret_access_key
+      cloudflare-account-id          = var.cloudflare_account_id
+    },
   )
 }
 

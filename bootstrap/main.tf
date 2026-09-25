@@ -51,6 +51,10 @@ module "bootstrap" {
   plex_claim_token    = var.plex_claim_token
   immichframe_api_key = var.immichframe_api_key
 
+  paperless_r2_access_key_id     = var.paperless_r2_access_key_id
+  paperless_r2_secret_access_key = var.paperless_r2_secret_access_key
+  cloudflare_account_id          = var.cloudflare_account_id
+
   app_secrets = {
     CRM_ZITADEL_CLIENT_SECRET = var.crm_zitadel_client_secret
     BFF_SESSION_SECRET        = var.bff_session_secret

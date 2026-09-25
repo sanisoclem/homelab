@@ -205,6 +205,26 @@ variable "immichframe_api_key" {
   default     = ""
 }
 
+variable "paperless_r2_access_key_id" {
+  type        = string
+  description = "Access key ID of the R2 token the paperless r2-inbox sidecar pulls emailed documents with"
+  sensitive   = true
+  default     = ""
+}
+
+variable "paperless_r2_secret_access_key" {
+  type        = string
+  description = "Secret access key of the R2 token the paperless r2-inbox sidecar pulls emailed documents with"
+  sensitive   = true
+  default     = ""
+}
+
+variable "cloudflare_account_id" {
+  type        = string
+  description = "Cloudflare account ID, used to build the R2 endpoint"
+  default     = ""
+}
+
 variable "renovate_token" {
   type        = string
   description = "GitHub PAT the in-cluster Renovate opens pull requests with, fine-grained with Contents and Pull requests write on the gitops repos"
