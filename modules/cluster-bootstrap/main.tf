@@ -151,7 +151,7 @@ locals {
     transient = "csi-t-"
   }
 
-  block_csi_configs = {
+  csi_configs = {
     for class, prefix in local.block_name_prefixes : "block-${class}" => {
       driver         = "freenas-api-iscsi"
       httpConnection = local.nas_http
@@ -164,51 +164,6 @@ locals {
       iscsi = merge(local.iscsi_target, { namePrefix = prefix })
     }
   }
-
-  csi_configs = merge(local.block_csi_configs, {
-    iscsi = {
-      driver         = "freenas-api-iscsi"
-      httpConnection = local.nas_http
-      zfs = {
-        datasetParentName                  = "${var.nas.dataset}/iscsi/v"
-        detachedSnapshotsDatasetParentName = "${var.nas.dataset}/iscsi/s"
-        zvolBlocksize                      = "16K"
-        zvolEnableReservation              = false
-      }
-      iscsi = {
-        targetPortal = var.nas.iscsi_portal
-        namePrefix   = "csi-"
-        targetGroups = [{
-          targetGroupPortalGroup    = 1
-          targetGroupInitiatorGroup = 1
-          targetGroupAuthType       = "None"
-        }]
-        extentInsecureTpc              = true
-        extentDisablePhysicalBlocksize = true
-        extentBlocksize                = 512
-        extentRpm                      = "SSD"
-      }
-    }
-
-    nfs = {
-      driver         = "freenas-api-nfs"
-      httpConnection = local.nas_http
-      zfs = {
-        datasetParentName                  = "${var.nas.dataset}/nfs/v"
-        detachedSnapshotsDatasetParentName = "${var.nas.dataset}/nfs/s"
-        datasetEnableQuotas                = true
-        datasetPermissionsMode             = "0777"
-        datasetPermissionsUser             = 0
-        datasetPermissionsGroup            = 0
-      }
-      nfs = {
-        shareHost         = var.nas.host
-        shareAlldirs      = false
-        shareMaprootUser  = "root"
-        shareMaprootGroup = "root"
-      }
-    }
-  })
 }
 
 resource "kubernetes_secret" "democratic_csi" {
