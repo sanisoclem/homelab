@@ -5,7 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/truenas.sh"
 
 TRUECLOUD_PASSWORD="${TRUECLOUD_PASSWORD:?TRUECLOUD_PASSWORD is not set; it is the encryption password of the Storj backups}"
-NFS_CLIENTS="${NAS%.*}.0/24"
+NFS_CLIENTS=$(jq -cn \
+  --argjson controlplanes "${TF_VAR_controlplane_ips:?TF_VAR_controlplane_ips is not set}" \
+  --argjson workers "${TF_VAR_worker_ips:?TF_VAR_worker_ips is not set}" \
+  '$controlplanes + $workers | map(sub("/.*"; "") + "/32") | sort')
 
 dataset_exists() {
   nas GET "pool/dataset?id=$(uri "$1")" | jq -e 'length > 0' > /dev/null
@@ -18,10 +21,17 @@ ensure_dataset() {
 }
 
 ensure_nfs_share() {
-  nas GET "sharing/nfs?path=$(uri "$1")" | jq -e 'length > 0' > /dev/null && return
-  echo "nas: sharing $1 with $NFS_CLIENTS"
-  nas POST sharing/nfs -d "$(jq -n --arg path "$1" --arg clients "$NFS_CLIENTS" \
-    '{path: $path, networks: [$clients], maproot_user: "root", maproot_group: "root"}')" > /dev/null
+  local share
+  share=$(nas GET "sharing/nfs?path=$(uri "$1")" | jq -c 'first(.[]) // empty')
+  if [ -z "$share" ]; then
+    echo "nas: sharing $1 with the cluster nodes $NFS_CLIENTS"
+    nas POST sharing/nfs -d "$(jq -n --arg path "$1" --argjson clients "$NFS_CLIENTS" \
+      '{path: $path, networks: $clients, hosts: [], maproot_user: "root", maproot_group: "root"}')" > /dev/null
+  elif ! jq -e --argjson clients "$NFS_CLIENTS" '(.networks | sort) == $clients and .hosts == []' <<< "$share" > /dev/null; then
+    echo "nas: limiting $1 to the cluster nodes $NFS_CLIENTS"
+    nas PUT "sharing/nfs/id/$(jq -r .id <<< "$share")" -d "$(jq -n --argjson clients "$NFS_CLIENTS" \
+      '{networks: $clients, hosts: []}')" > /dev/null
+  fi
 }
 
 storj_credential() {
