@@ -249,18 +249,6 @@ resource "kubernetes_secret" "volsync_restic" {
   }
 }
 
-resource "kubernetes_secret" "truenas" {
-  metadata {
-    name      = "truenas"
-    namespace = kubernetes_namespace.secrets.metadata[0].name
-  }
-
-  data = {
-    host    = var.nas.host
-    api-key = var.truenas_api_key
-  }
-}
-
 resource "kubernetes_secret" "app_secrets" {
   metadata {
     name      = "app-secrets"

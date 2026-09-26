@@ -66,8 +66,6 @@ platform = {
     'GITHUB_ORG':        os.environ['GITHUB_ORG'],
     'LETSENCRYPT_EMAIL': cluster['letsencrypt_email'],
     'S3_ENDPOINT':       cluster['s3_endpoint'],
-    'NAS_HOST':          cluster['nas_host'],
-    'NAS_APPS_PATH':     apps_path,
 }
 
 
