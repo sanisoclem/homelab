@@ -69,6 +69,8 @@ This also bootstraps all the gitops repos and seeds zitadel. So all gitops repos
 
 With the NAS intact, this brings a new cluster back as it was: Postgres restores from its WAL archive, `block-backed` volumes from their last hourly backup, and NFS data is where it was.
 
+`task up` is safe to re-run. It also moves the volumes listed in `scripts/migrate-volumes.sh`, then deletes every zvol under the cluster dataset that no PersistentVolume uses and that is older than an hour, along with its iSCSI mapping.
+
 ## Destroying
 
 ```bash

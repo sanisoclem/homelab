@@ -77,24 +77,15 @@ tasks:
     cmds:
       - ./scripts/nas-orphans.sh
 
-  backups:flush:
-    desc: "Back up every block-backed volume and database now and wait for it"
+  volumes:migrate:
+    desc: "Move the volumes listed in scripts/migrate-volumes.sh to their new storage; a no-op once they have moved"
     cmds:
-      - ./scripts/flush-backups.sh
+      - ./scripts/migrate-volumes.sh
 
-  volume:seed:
-    desc: "Seed the backup a new block-backed PVC restores from with an existing PVC (NS=home-media FROM=emby-config TO=emby)"
-    requires:
-      vars: [NS, FROM, TO]
+  nas:reap:
+    desc: "Delete released PVs, then every zvol and iSCSI mapping under the cluster dataset that no PV uses"
     cmds:
-      - ./scripts/seed-volume.sh {{.NS}} {{.FROM}} {{.TO}}
-
-  volume:to-nfs:
-    desc: "Copy a PVC into the NFS apps dataset (NS=home-knowledge PVC=paperless-files SUBPATH=knowledge/paperless/media)"
-    requires:
-      vars: [NS, PVC, SUBPATH]
-    cmds:
-      - ./scripts/copy-volume-to-nfs.sh {{.NS}} {{.PVC}} {{.SUBPATH}}
+      - ./scripts/nas-reap.sh
 
   up:
     desc: "Provision everything from scratch (non-interactive)"
@@ -108,6 +99,8 @@ tasks:
         vars: { TF_APPLY_ARGS: '-auto-approve' }
       - task: zitadel:seed
       - task: argocd:cert
+      - task: volumes:migrate
+      - task: nas:reap
       - task: summary
 
   credentials:
