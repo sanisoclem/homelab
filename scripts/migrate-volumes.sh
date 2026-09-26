@@ -66,13 +66,27 @@ pods_using() {
     jq -r --arg pvc "$2" '.items[] | select(any(.spec.volumes[]?; .persistentVolumeClaim.claimName == $pvc)) | .metadata.name'
 }
 
+pvc_uid() {
+  kubectl -n "$1" get pvc "$2" -o jsonpath='{.metadata.uid}' 2> /dev/null || true
+}
+
+release_old_pvc() {
+  local namespace="$1" pvc="$2" old="$3"
+  for _ in $(seq 120); do
+    [ "$(pvc_uid "$namespace" "$pvc")" = "$old" ] || return 0
+    pods_using "$namespace" "$pvc" | xargs -r kubectl -n "$namespace" delete pod --wait=false > /dev/null
+    sleep 5
+  done
+  echo "migrate: $namespace/$pvc is still the old volume after 10 minutes" >&2
+  return 1
+}
+
 recreate_on_default_class() {
-  local namespace="${1%/*}" pvc="${1#*/}"
+  local namespace="${1%/*}" pvc="${1#*/}" old
+  old=$(pvc_uid "$namespace" "$pvc")
   echo "migrate: recreating $namespace/$pvc on block-transient; its data is not kept"
   kubectl -n "$namespace" delete pvc "$pvc" --wait=false
-  pods_using "$namespace" "$pvc" | xargs -r kubectl -n "$namespace" delete pod
-  kubectl -n "$namespace" wait "pvc/$pvc" --for=delete --timeout=10m 2> /dev/null || true
-  pods_using "$namespace" "$pvc" | xargs -r kubectl -n "$namespace" delete pod
+  release_old_pvc "$namespace" "$pvc" "$old"
 }
 
 recreate_transient_volumes() {
