@@ -33,6 +33,7 @@ platform_dir, hempire_dir, home_dir = sys.argv[1:4]
 cluster = {key: value['value'] for key, value in json.loads(os.environ['CLUSTER_OUT']).items()}
 
 zone = cluster['dns_zone']
+apps_path = f"/mnt/{cluster['nas_dataset']}/apps"
 
 auth = {
     'DNS_ZONE':      zone,
@@ -47,6 +48,7 @@ home = {
     'NAS_PHOTOS_PATH':    os.environ['NAS_PHOTOS_PATH'],
     'NAS_KNOWLEDGE_PATH': os.environ['NAS_KNOWLEDGE_PATH'],
     'NAS_EMBY_PATH':      os.environ['NAS_EMBY_PATH'],
+    'NAS_APPS_PATH':      apps_path,
     'S3_ENDPOINT':        cluster['s3_endpoint'],
     'S3_BACKUP_BUCKET':   os.environ['S3_BACKUP_BUCKET'],
 }
@@ -64,6 +66,8 @@ platform = {
     'GITHUB_ORG':        os.environ['GITHUB_ORG'],
     'LETSENCRYPT_EMAIL': cluster['letsencrypt_email'],
     'S3_ENDPOINT':       cluster['s3_endpoint'],
+    'NAS_HOST':          cluster['nas_host'],
+    'NAS_APPS_PATH':     apps_path,
 }
 
 

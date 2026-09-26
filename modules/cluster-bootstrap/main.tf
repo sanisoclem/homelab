@@ -243,10 +243,9 @@ resource "kubernetes_secret" "volsync_restic" {
   }
 
   data = {
-    repository-base = "s3:${var.s3_endpoint}/backups/volsync"
-    password        = var.stable_secrets.volsync_restic_password
-    access-key      = var.s3_access_key
-    secret-key      = var.s3_secret_key
+    RESTIC_PASSWORD       = var.stable_secrets.volsync_restic_password
+    AWS_ACCESS_KEY_ID     = var.s3_access_key
+    AWS_SECRET_ACCESS_KEY = var.s3_secret_key
   }
 }
 

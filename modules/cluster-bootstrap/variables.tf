@@ -127,11 +127,6 @@ variable "truenas_api_key" {
   }
 }
 
-variable "s3_endpoint" {
-  type        = string
-  description = "URL of the S3 store on the NAS that holds the CNPG and VolSync backups"
-}
-
 variable "s3_access_key" {
   type        = string
   description = "MinIO access key for the bucket holding CNPG backups and the Loki and Tempo chunks"

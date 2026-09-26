@@ -3,7 +3,7 @@ set -euo pipefail
 
 missing=()
 
-for tool in tofu kubectl helm talosctl openssl python3; do
+for tool in tofu kubectl helm talosctl openssl python3 jq curl; do
   command -v "$tool" >/dev/null || missing+=("$tool is not on PATH")
 done
 
@@ -15,8 +15,17 @@ require() {
 }
 
 for name in TF_VAR_proxmox_endpoint TF_VAR_proxmox_node TF_VAR_proxmox_api_token \
-  TF_VAR_vm_datastore_id TF_VAR_cloudflare_api_token TF_VAR_controlplane_vip; do
+  TF_VAR_vm_datastore_id TF_VAR_cloudflare_api_token TF_VAR_controlplane_vip \
+  TF_VAR_truenas_api_key TRUECLOUD_PASSWORD; do
   require "$name"
+done
+
+for name in TF_VAR_grafana_admin_password TF_VAR_pgadmin_admin_password TF_VAR_zitadel_admin_password \
+  TF_VAR_hempire_db_password TF_VAR_zitadel_db_password TF_VAR_immich_db_password TF_VAR_paperless_db_password \
+  TF_VAR_meilisearch_master_key TF_VAR_karakeep_nextauth_secret TF_VAR_paperless_secret_key \
+  TF_VAR_paperless_admin_password TF_VAR_couchdb_password TF_VAR_couchdb_secret TF_VAR_couchdb_erlang_cookie \
+  TF_VAR_volsync_restic_password; do
+  [ -n "${!name:-}" ] || missing+=("$name is unset in .env; restore it from the password manager, or on a first install generate it once with \`openssl rand -hex 32\`")
 done
 
 if [ -n "${TF_VAR_proxmox_endpoint:-}" ] && [ -n "${TF_VAR_proxmox_api_token:-}" ]; then
@@ -88,6 +97,11 @@ fi
 if [ -n "${TF_VAR_nas_host:-}" ]; then
   timeout 3 bash -c "</dev/tcp/${TF_VAR_nas_host}/443" 2>/dev/null ||
     missing+=("the TrueNAS API at ${TF_VAR_nas_host}:443 is not answering; start the NAS before the cluster looks for its volumes")
+fi
+
+if [ -n "${TF_VAR_s3_endpoint:-}" ]; then
+  [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$TF_VAR_s3_endpoint" || true)" != 000 ] ||
+    missing+=("rustfs at ${TF_VAR_s3_endpoint} is not answering; the databases and block-backed volumes restore from it")
 fi
 
 for path in "${TF_VAR_platform_path:-}" "${TF_VAR_hempire_path:-}" "${TF_VAR_home_path:-}"; do

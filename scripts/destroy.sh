@@ -15,6 +15,11 @@ pve() {
   ssh "${ssh_opts[@]}" "${TF_VAR_proxmox_ssh_username:-root}@${host%%:*}" "$@"
 }
 
+if [ -z "${SKIP_FLUSH:-}" ] && ! "$SCRIPT_DIR/flush-backups.sh"; then
+  echo "destroy: the final backups did not finish; set SKIP_FLUSH=1 to destroy anyway and lose what changed since the last hourly backup" >&2
+  exit 1
+fi
+
 echo "==> Destroying Argo CD and the source secrets"
 tofu -chdir="$ROOT/bootstrap" destroy -auto-approve 2>&1 | tail -3
 

@@ -44,7 +44,6 @@ module "bootstrap" {
   }
 
   truenas_api_key = var.truenas_api_key
-  s3_endpoint     = data.terraform_remote_state.cluster.outputs.s3_endpoint
   s3_access_key   = var.s3_access_key
   s3_secret_key   = var.s3_secret_key
 

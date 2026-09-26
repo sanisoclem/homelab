@@ -67,10 +67,40 @@ tasks:
     cmds:
       - ./scripts/refresh-argocd-cert.sh
 
+  nas:apply:
+    desc: "Create the datasets, NFS share, Storj backups and snapshot tasks the cluster relies on"
+    cmds:
+      - ./scripts/nas-apply.sh
+
+  nas:orphans:
+    desc: "List zvols under the cluster dataset that no PersistentVolume uses"
+    cmds:
+      - ./scripts/nas-orphans.sh
+
+  backups:flush:
+    desc: "Back up every block-backed volume and database now and wait for it"
+    cmds:
+      - ./scripts/flush-backups.sh
+
+  volume:seed:
+    desc: "Seed the backup a new block-backed PVC restores from with an existing PVC (NS=home-media FROM=emby-config TO=emby)"
+    requires:
+      vars: [NS, FROM, TO]
+    cmds:
+      - ./scripts/seed-volume.sh {{.NS}} {{.FROM}} {{.TO}}
+
+  volume:to-nfs:
+    desc: "Copy a PVC into the NFS apps dataset (NS=home-knowledge PVC=paperless-files SUBPATH=knowledge/paperless/media)"
+    requires:
+      vars: [NS, PVC, SUBPATH]
+    cmds:
+      - ./scripts/copy-volume-to-nfs.sh {{.NS}} {{.PVC}} {{.SUBPATH}}
+
   up:
     desc: "Provision everything from scratch (non-interactive)"
     aliases: [run]
     cmds:
+      - task: nas:apply
       - task: cluster:apply
         vars: { TF_APPLY_ARGS: '-auto-approve' }
       - task: gitops:sync
@@ -119,7 +149,7 @@ tasks:
         tofu output -json node_ips \
           | python3 -c 'import json,sys; [print(f"    {k:24} {v}") for k, v in sorted(json.load(sys.stdin).items())]'
         printf "\n  ----------------------------------------------------------------\n"
-        printf "  Break-glass logins — save these now, they are not shown again\n\n"
+        printf "  Break-glass logins (kept in .env)\n\n"
         printf "  Zitadel   https://a.%s\n" "$(tofu output -raw dns_zone)"
         printf "    user      zitadel-admin@zitadel.a.%s\n" "$(tofu output -raw dns_zone)"
         printf "    password  %s\n" "$(tofu -chdir=../bootstrap output -raw zitadel_admin_password)"
@@ -135,6 +165,6 @@ tasks:
 
   destroy:
     desc: "Tear everything down so `task up` starts from nothing"
-    prompt: "This destroys all six VMs. Volumes on the NAS survive. Continue?"
+    prompt: "This backs up every block-backed volume and database, then destroys all six VMs. Continue?"
     cmds:
       - ./scripts/destroy.sh

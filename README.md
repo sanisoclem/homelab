@@ -55,7 +55,9 @@ Turn off short-lived tokens. It seems to be turned on by default for new apps no
 
 1. Create a Cloudflare API Token for each zone (`Zone:Read` and `Zone:DNS:Edit`). This is used to create DNS records for the LB and for cert-manager challenges.
 
-1. Create TrueNAS API key, MinIO (hosted in truenas)
+1. Create TrueNAS API key, RustFS (hosted in truenas)
+
+1. Keep `.env` in the password manager. Its stable secrets and `TRUECLOUD_PASSWORD` exist nowhere else; without them the backups cannot be read.
 
 ## Provisioning
 
@@ -65,10 +67,16 @@ task up
 
 This also bootstraps all the gitops repos and seeds zitadel. So all gitops repos must be pushed, especially platform repo so zitadel can start and be seeded within the time limit.
 
+With the NAS intact, this brings a new cluster back as it was: Postgres restores from its WAL archive, `block-backed` volumes from their last hourly backup, and NFS data is where it was.
+
 ## Destroying
 
 ```bash
 task destroy
 ```
 
-This destroys all VMs. Postgres data will be destroyed (?) but is backed up to the NAS.
+This backs up every `block-backed` volume and database, then destroys all VMs.
+
+## NAS recovery
+
+See [docs/nas-recovery.md](docs/nas-recovery.md).
