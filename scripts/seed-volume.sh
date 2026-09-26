@@ -5,6 +5,7 @@ NAMESPACE="${1:?usage: seed-volume.sh NAMESPACE SOURCE_PVC TARGET_PVC}"
 SOURCE="${2:?usage: seed-volume.sh NAMESPACE SOURCE_PVC TARGET_PVC}"
 TARGET="${3:?usage: seed-volume.sh NAMESPACE SOURCE_PVC TARGET_PVC}"
 S3_ENDPOINT="${TF_VAR_s3_endpoint:?TF_VAR_s3_endpoint is not set}"
+S3_BUCKET="${S3_BACKUP_BUCKET:?S3_BACKUP_BUCKET is not set}"
 
 KUBECONFIG="${TF_VAR_kubeconfig_path:?TF_VAR_kubeconfig_path is not set}"
 export KUBECONFIG="${KUBECONFIG/#\~/$HOME}"
@@ -19,7 +20,7 @@ allow_privileged_movers() {
 write_repository_secret() {
   kubectl -n secrets get secret volsync-restic -o json |
     jq --arg namespace "$NAMESPACE" --arg name "$SEED" \
-      --arg repository "s3:$S3_ENDPOINT/backups/volsync/$NAMESPACE/$TARGET" '{
+      --arg repository "s3:$S3_ENDPOINT/$S3_BUCKET/volsync/$NAMESPACE/$TARGET" '{
         apiVersion: "v1",
         kind: "Secret",
         metadata: {name: $name, namespace: $namespace},

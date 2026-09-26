@@ -26,6 +26,12 @@ NAS_PHOTOS_PATH="${NAS_PHOTOS_PATH:?}" \
 NAS_KNOWLEDGE_PATH="${NAS_KNOWLEDGE_PATH:?}" \
 NAS_EMBY_PATH="${NAS_EMBY_PATH:?}" \
 S3_BACKUP_BUCKET="${S3_BACKUP_BUCKET:?}" \
+HOME_TZ="${HOME_TZ:?}" \
+LLM_ENDPOINT="${LLM_ENDPOINT:?}" \
+EGRESS_GATEWAY="${TF_VAR_egress_gateway:?}" \
+EGRESS_SUBNET="${EGRESS_SUBNET:?}" \
+EGRESS_POD_RANGE="${EGRESS_POD_RANGE:?}" \
+NAMESERVERS="${TF_VAR_nameservers:?}" \
   python3 - "$PLATFORM_DIR" "$HEMPIRE_DIR" "$HOME_DIR" <<'PYEOF'
 import json, os, re, sys
 
@@ -42,6 +48,7 @@ auth = {
 }
 
 home = {
+    'TZ':                 os.environ['HOME_TZ'],
     'HOME_ZONE':          cluster['home_dns_zone'],
     'NAS_HOST':           cluster['nas_host'],
     'NAS_MEDIA_PATH':     os.environ['NAS_MEDIA_PATH'],
@@ -51,6 +58,11 @@ home = {
     'NAS_APPS_PATH':      apps_path,
     'S3_ENDPOINT':        cluster['s3_endpoint'],
     'S3_BACKUP_BUCKET':   os.environ['S3_BACKUP_BUCKET'],
+    'LLM_ENDPOINT':       os.environ['LLM_ENDPOINT'],
+    'EGRESS_GATEWAY':     os.environ['EGRESS_GATEWAY'],
+    'EGRESS_SUBNET':      os.environ['EGRESS_SUBNET'],
+    'EGRESS_POD_RANGE':   os.environ['EGRESS_POD_RANGE'],
+    'DNS_SERVERS':        ','.join(json.loads(os.environ['NAMESERVERS'])),
 }
 
 platform = {
@@ -66,6 +78,7 @@ platform = {
     'GITHUB_ORG':        os.environ['GITHUB_ORG'],
     'LETSENCRYPT_EMAIL': cluster['letsencrypt_email'],
     'S3_ENDPOINT':       cluster['s3_endpoint'],
+    'S3_BACKUP_BUCKET':  os.environ['S3_BACKUP_BUCKET'],
 }
 
 
@@ -92,7 +105,8 @@ def patch(path, values):
 
 patch(f'{platform_dir}/config/cluster-config.yaml', platform)
 patch(f'{hempire_dir}/config/cluster-config.yaml',
-      {**auth, 'DNS_ZONE': cluster['hempire_dns_zone'], 'S3_ENDPOINT': cluster['s3_endpoint']})
+      {**auth, 'DNS_ZONE': cluster['hempire_dns_zone'], 'S3_ENDPOINT': cluster['s3_endpoint'],
+       'S3_BACKUP_BUCKET': os.environ['S3_BACKUP_BUCKET']})
 patch(f'{home_dir}/config/cluster-config.yaml', home)
 PYEOF
 

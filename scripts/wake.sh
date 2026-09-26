@@ -11,7 +11,10 @@
 set -euo pipefail
 
 MAC="${1:?usage: wake.sh <mac> [host-ip]}"
-DEST="${2:-10.11.7.255}"
+proxmox_host="${TF_VAR_proxmox_endpoint:-}"
+proxmox_host="${proxmox_host#*://}"
+DEST="${2:-${proxmox_host%%[:/]*}}"
+[ -n "$DEST" ] || { echo "usage: wake.sh <mac> <host-ip> (or set TF_VAR_proxmox_endpoint)" >&2; exit 1; }
 PORT="${PORT:-9}"
 
 hex=$(printf '%s' "$MAC" | tr -d ':-' | tr 'A-F' 'a-f')

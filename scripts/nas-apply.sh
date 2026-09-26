@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/truenas.sh"
 
 TRUECLOUD_PASSWORD="${TRUECLOUD_PASSWORD:?TRUECLOUD_PASSWORD is not set; it is the encryption password of the Storj backups}"
+STORJ_BUCKET="${STORJ_BUCKET:?STORJ_BUCKET is not set}"
+USER_DATASET="${NAS_USER_DATASET:?NAS_USER_DATASET is not set}"
+SERVICE_DATASET="${NAS_SERVICE_DATASET:?NAS_SERVICE_DATASET is not set}"
+SCRATCH_DATASET="${NAS_SCRATCH_DATASET:?NAS_SCRATCH_DATASET is not set}"
+S3_DATASET="${NAS_S3_DATASET:?NAS_S3_DATASET is not set}"
 NFS_CLIENTS=$(jq -cn \
   --argjson controlplanes "${TF_VAR_controlplane_ips:?TF_VAR_controlplane_ips is not set}" \
   --argjson workers "${TF_VAR_worker_ips:?TF_VAR_worker_ips is not set}" \
@@ -106,20 +111,24 @@ ensure_shares() {
   ensure_nfs_share "/mnt/$APPS_DATASET"
 }
 
+storj_folder() {
+  echo "/${1#"$POOL/"}"
+}
+
 ensure_storj_backups() {
-  ensure_storj_backup "/mnt/$APPS_DATASET" usr-backup /k8s-apps 3 '*' 60
-  for leaf in $(leaf_datasets "$POOL/svc"); do
-    ensure_storj_backup "/mnt/$leaf" usr-backup "/${leaf#"$POOL/"}" 2 sat 52
+  ensure_storj_backup "/mnt/$APPS_DATASET" "$STORJ_BUCKET" "$(storj_folder "$APPS_DATASET")" 3 '*' 60
+  for leaf in $(leaf_datasets "$SERVICE_DATASET"); do
+    ensure_storj_backup "/mnt/$leaf" "$STORJ_BUCKET" "$(storj_folder "$leaf")" 2 sat 52
   done
-  disable_backups_without_snapshots "/mnt/$POOL/svc"
+  disable_backups_without_snapshots "/mnt/$SERVICE_DATASET"
 }
 
 ensure_snapshots() {
   ensure_snapshot_task "$APPS_DATASET" false '[]' 'hourly-%Y-%m-%d_%H-%M' 2 '*'
   ensure_snapshot_task "$APPS_DATASET" false '[]' 'daily-%Y-%m-%d_%H-%M' 14 0
-  ensure_snapshot_task "$POOL/usr" true "[\"$POOL/usr/scratch\"]" 'daily-%Y-%m-%d_%H-%M' 14 0
-  ensure_snapshot_task "$POOL/svc" true '[]' 'daily-%Y-%m-%d_%H-%M' 14 0
-  ensure_snapshot_task "$K8S_DATASET/s3-backups" false '[]' 'daily-%Y-%m-%d_%H-%M' 14 0
+  ensure_snapshot_task "$USER_DATASET" true "[\"$SCRATCH_DATASET\"]" 'daily-%Y-%m-%d_%H-%M' 14 0
+  ensure_snapshot_task "$SERVICE_DATASET" true '[]' 'daily-%Y-%m-%d_%H-%M' 14 0
+  ensure_snapshot_task "$S3_DATASET" false '[]' 'daily-%Y-%m-%d_%H-%M' 14 0
 }
 
 STORJ_CREDENTIAL=$(storj_credential)
