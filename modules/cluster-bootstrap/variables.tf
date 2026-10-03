@@ -89,12 +89,23 @@ variable "registry_ci_password_hash" {
 
 variable "registry_puller_password_hash" {
   type        = string
-  description = "bcrypt hash of the registry's puller password, as htpasswd writes it. It must hash the plaintext in stable_secrets or no pod can pull"
+  description = "bcrypt hash of the registry's puller password, as htpasswd writes it. It must hash registry_puller_password or no pod can pull"
   sensitive   = true
 
   validation {
     condition     = length(var.registry_puller_password_hash) > 0
     error_message = "registry_puller_password_hash must not be empty."
+  }
+}
+
+variable "registry_puller_password" {
+  type        = string
+  description = "Password the pull secret presents as the registry's puller user. Written once by scripts/registry-credentials.sh and reused, so the secret does not churn on every apply. Nothing restored depends on it: regenerate it and the next apply reconciles"
+  sensitive   = true
+
+  validation {
+    condition     = length(var.registry_puller_password) > 0
+    error_message = "registry_puller_password must not be empty."
   }
 }
 
@@ -236,7 +247,6 @@ variable "stable_secrets" {
     couchdb_secret           = string
     couchdb_erlang_cookie    = string
     volsync_restic_password  = string
-    registry_puller_password = string
   })
   description = "Secrets that restored data depends on. Generated once and kept in .env, so a rebuilt cluster opens the databases, volumes and backups the old one wrote"
   sensitive   = true

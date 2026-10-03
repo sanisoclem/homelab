@@ -59,6 +59,8 @@ Turn off short-lived tokens. It seems to be turned on by default for new apps no
 
 1. Keep `.env` in the password manager. Its stable secrets and `TRUECLOUD_PASSWORD` exist nowhere else; without them the backups cannot be read.
 
+1. The image registry's credentials are not among them. `task up` mints them once into `bootstrap/registry.auto.tfvars` and sets `REGISTRY_TOKEN` on the app repo, then reuses whatever it finds, so an apply never rotates them. Nothing restored depends on them — delete that file and the next apply issues a fresh pair. The `ci` password is held only by GitHub: if that secret goes missing, drop the `registry_ci_password_hash` line and re-run to mint another, which leaves pulls working.
+
 ## Provisioning
 
 ```bash

@@ -38,8 +38,14 @@ tasks:
       - tofu init
       - tofu apply -replace='module.cluster.proxmox_virtual_environment_vm.node["{{.NODE}}"]' {{.TF_APPLY_ARGS}}
 
+  registry:credentials:
+    desc: "Mint the image registry's credentials once, then keep reusing them"
+    cmds:
+      - ./scripts/registry-credentials.sh
+
   bootstrap:plan:
     desc: "Plan the source secrets, Argo CD, and the platform root"
+    deps: [registry:credentials]
     dir: bootstrap
     cmds:
       - tofu init
@@ -47,6 +53,7 @@ tasks:
 
   bootstrap:apply:
     desc: "Install the source secrets, Argo CD, and the platform root"
+    deps: [registry:credentials]
     dir: bootstrap
     cmds:
       - tofu init

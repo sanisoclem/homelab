@@ -10,7 +10,7 @@ locals {
   registry_dockerconfig = jsonencode({
     auths = {
       (var.registry_host) = {
-        auth = base64encode("puller:${var.stable_secrets.registry_puller_password}")
+        auth = base64encode("puller:${var.registry_puller_password}")
       }
     }
   })

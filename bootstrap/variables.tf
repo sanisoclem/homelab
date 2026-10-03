@@ -76,7 +76,7 @@ variable "registry_puller_password_hash" {
 
 variable "registry_puller_password" {
   type        = string
-  description = "Password the pull secret presents as the registry's puller user. Generate once (openssl rand -hex 32) and never change it"
+  description = "Password the pull secret presents as the registry's puller user, written by scripts/registry-credentials.sh"
   sensitive   = true
 }
 
