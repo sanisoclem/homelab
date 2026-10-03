@@ -23,15 +23,34 @@ connected_targets() {
   nas POST iscsi/global/sessions -d '{}' | jq -r '.[].target | sub("^[^:]*:"; "")'
 }
 
-unused_zvols() {
-  local bound="$1" oldest
-  oldest=$(($(date +%s) - MINIMUM_AGE_SECONDS))
+cluster_zvols() {
   nas GET "pool/dataset?type=VOLUME&limit=0" |
-    jq -r --arg root "$K8S_DATASET/" --argjson oldest "$oldest" \
-      '.[] | select((.name | startswith($root)) and (.creation.rawvalue | tonumber) < $oldest) | .name' |
+    jq -c --arg root "$K8S_DATASET/" \
+      '[.[] | select(.name | startswith($root))
+            | {name, created: (.creation.rawvalue | tonumber),
+               origin: ((.origin.rawvalue // "") | sub("@.*"; ""))}]'
+}
+
+unused_zvols() {
+  local zvols="$1" bound="$2" oldest
+  oldest=$(($(date +%s) - MINIMUM_AGE_SECONDS))
+  jq -r --argjson oldest "$oldest" '.[] | select(.created < $oldest) | .name' <<< "$zvols" |
     while read -r zvol; do
       grep -qxF "${zvol##*/}" <<< "$bound" || echo "$zvol"
     done
+}
+
+clones_of() {
+  jq -r --arg origin "$2" '.[] | select(.origin == $origin) | .name' <<< "$1"
+}
+
+surviving_clone() {
+  local zvols="$1" zvol="$2" destroyed="$3" clone
+  while read -r clone; do
+    [ -n "$clone" ] || continue
+    grep -qxF "$clone" <<< "$destroyed" || { echo "$clone"; return 0; }
+  done < <(clones_of "$zvols" "$zvol")
+  return 1
 }
 
 detach() {
@@ -56,14 +75,40 @@ destroy() {
 }
 
 reap_unused_zvols() {
-  local bound connected zvol
+  local zvols bound connected unused destroyed deferred progress zvol clone
+  zvols=$(cluster_zvols)
   bound=$(bound_volumes)
   connected=$(connected_targets)
-  for zvol in $(unused_zvols "$bound"); do
-    detach "$zvol" "$connected" || continue
-    destroy "$zvol"
-    echo "reap: destroyed $zvol"
+  unused=$(unused_zvols "$zvols" "$bound")
+  destroyed=""
+  progress=1
+
+  while [ -n "$unused" ] && [ "$progress" -ne 0 ]; do
+    progress=0
+    deferred=""
+    while read -r zvol; do
+      [ -n "$zvol" ] || continue
+      if surviving_clone "$zvols" "$zvol" "$destroyed" > /dev/null; then
+        deferred+="$zvol"$'\n'
+        continue
+      fi
+      detach "$zvol" "$connected" || continue
+      if ! destroy "$zvol"; then
+        echo "reap: could not destroy $zvol, leaving it" >&2
+        continue
+      fi
+      destroyed+="$zvol"$'\n'
+      progress=$((progress + 1))
+      echo "reap: destroyed $zvol"
+    done <<< "$unused"
+    unused="${deferred%$'\n'}"
   done
+
+  while read -r zvol; do
+    [ -n "$zvol" ] || continue
+    clone=$(surviving_clone "$zvols" "$zvol" "$destroyed") || continue
+    echo "reap: $zvol is the origin of $clone, leaving it" >&2
+  done <<< "$unused"
 }
 
 holds_volumes() {
