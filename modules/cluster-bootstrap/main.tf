@@ -6,6 +6,14 @@ locals {
       }
     }
   })
+
+  registry_dockerconfig = jsonencode({
+    auths = {
+      (var.registry_host) = {
+        auth = base64encode("puller:${var.stable_secrets.registry_puller_password}")
+      }
+    }
+  })
 }
 
 resource "kubernetes_namespace" "argocd" {
@@ -266,6 +274,29 @@ resource "kubernetes_secret" "ghcr_pull" {
 
   data = {
     dockerconfigjson = local.ghcr_dockerconfig
+  }
+}
+
+resource "kubernetes_secret" "registry_pull" {
+  metadata {
+    name      = "registry-pull"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    dockerconfigjson = local.registry_dockerconfig
+  }
+}
+
+resource "kubernetes_secret" "zot" {
+  metadata {
+    name      = "zot"
+    namespace = kubernetes_namespace.secrets.metadata[0].name
+  }
+
+  data = {
+    ciPasswordHash     = var.registry_ci_password_hash
+    pullerPasswordHash = var.registry_puller_password_hash
   }
 }
 
