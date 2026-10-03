@@ -66,6 +66,38 @@ variable "ghcr_token" {
   }
 }
 
+variable "registry_host" {
+  type        = string
+  description = "Host the cluster's own image registry answers on. It is the name in every app image reference, so it must match the one the gitops repos use"
+
+  validation {
+    condition     = length(var.registry_host) > 0
+    error_message = "registry_host must not be empty."
+  }
+}
+
+variable "registry_ci_password_hash" {
+  type        = string
+  description = "bcrypt hash of the registry's ci password, as htpasswd writes it. The plaintext belongs to the build pipeline and is never held here"
+  sensitive   = true
+
+  validation {
+    condition     = length(var.registry_ci_password_hash) > 0
+    error_message = "registry_ci_password_hash must not be empty."
+  }
+}
+
+variable "registry_puller_password_hash" {
+  type        = string
+  description = "bcrypt hash of the registry's puller password, as htpasswd writes it. It must hash the plaintext in stable_secrets or no pod can pull"
+  sensitive   = true
+
+  validation {
+    condition     = length(var.registry_puller_password_hash) > 0
+    error_message = "registry_puller_password_hash must not be empty."
+  }
+}
+
 variable "sso_client_id" {
   type        = string
   description = "Client ID of the GitHub OAuth app both Argo CD and Grafana authenticate against; it carries a redirect URI for each"
@@ -204,6 +236,7 @@ variable "stable_secrets" {
     couchdb_secret           = string
     couchdb_erlang_cookie    = string
     volsync_restic_password  = string
+    registry_puller_password = string
   })
   description = "Secrets that restored data depends on. Generated once and kept in .env, so a rebuilt cluster opens the databases, volumes and backups the old one wrote"
   sensitive   = true

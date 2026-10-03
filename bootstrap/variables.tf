@@ -57,6 +57,29 @@ variable "ghcr_token" {
   sensitive   = true
 }
 
+variable "registry_host" {
+  type        = string
+  description = "Host the cluster's own image registry answers on, matching the name the gitops repos reference"
+}
+
+variable "registry_ci_password_hash" {
+  type        = string
+  description = "bcrypt hash of the registry's ci password. The plaintext lives in the build pipeline's secrets, not here"
+  sensitive   = true
+}
+
+variable "registry_puller_password_hash" {
+  type        = string
+  description = "bcrypt hash of the registry's puller password, which must hash registry_puller_password"
+  sensitive   = true
+}
+
+variable "registry_puller_password" {
+  type        = string
+  description = "Password the pull secret presents as the registry's puller user. Generate once (openssl rand -hex 32) and never change it"
+  sensitive   = true
+}
+
 variable "sso_client_id" {
   type        = string
   description = "Client ID of the GitHub OAuth app both Argo CD and Grafana authenticate against"
