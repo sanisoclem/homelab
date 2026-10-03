@@ -3,7 +3,7 @@ set -euo pipefail
 
 missing=()
 
-for tool in tofu kubectl helm talosctl openssl python3 jq curl; do
+for tool in tofu kubectl helm talosctl openssl python3 jq curl htpasswd gh; do
   command -v "$tool" >/dev/null || missing+=("$tool is not on PATH")
 done
 
@@ -18,7 +18,8 @@ for name in TF_VAR_proxmox_endpoint TF_VAR_proxmox_node TF_VAR_proxmox_api_token
   TF_VAR_vm_datastore_id TF_VAR_cloudflare_api_token TF_VAR_controlplane_vip \
   TF_VAR_truenas_api_key TRUECLOUD_PASSWORD STORJ_BUCKET \
   NAS_USER_DATASET NAS_SERVICE_DATASET NAS_SCRATCH_DATASET NAS_S3_DATASET \
-  S3_BACKUP_BUCKET HOME_TZ LLM_ENDPOINT TF_VAR_egress_gateway EGRESS_SUBNET EGRESS_POD_RANGE; do
+  S3_BACKUP_BUCKET HOME_TZ LLM_ENDPOINT TF_VAR_egress_gateway EGRESS_SUBNET EGRESS_POD_RANGE \
+  GITHUB_ORG REGISTRY_HOST; do
   require "$name"
 done
 

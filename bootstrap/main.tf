@@ -34,6 +34,7 @@ module "bootstrap" {
   registry_host                 = var.registry_host
   registry_ci_password_hash     = var.registry_ci_password_hash
   registry_puller_password_hash = var.registry_puller_password_hash
+  registry_puller_password      = var.registry_puller_password
 
   sso_client_id                = var.sso_client_id
   sso_client_secret            = var.sso_client_secret
@@ -88,6 +89,5 @@ module "bootstrap" {
     couchdb_secret           = var.couchdb_secret
     couchdb_erlang_cookie    = var.couchdb_erlang_cookie
     volsync_restic_password  = var.volsync_restic_password
-    registry_puller_password = var.registry_puller_password
   }
 }
