@@ -29,7 +29,6 @@ module "bootstrap" {
   platform_path = var.platform_path
 
   github_user = var.github_user
-  ghcr_token  = var.ghcr_token
 
   registry_host                 = var.registry_host
   registry_ci_password_hash     = var.registry_ci_password_hash

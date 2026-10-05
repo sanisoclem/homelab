@@ -1,12 +1,4 @@
 locals {
-  ghcr_dockerconfig = jsonencode({
-    auths = {
-      "ghcr.io" = {
-        auth = base64encode("${var.github_user}:${var.ghcr_token}")
-      }
-    }
-  })
-
   registry_dockerconfig = jsonencode({
     auths = {
       (var.registry_host) = {
@@ -219,17 +211,6 @@ resource "kubernetes_secret" "app_secrets" {
   }
 
   data = var.app_secrets
-}
-
-resource "kubernetes_secret" "ghcr_pull" {
-  metadata {
-    name      = "ghcr-pull"
-    namespace = kubernetes_namespace.secrets.metadata[0].name
-  }
-
-  data = {
-    dockerconfigjson = local.ghcr_dockerconfig
-  }
 }
 
 resource "kubernetes_secret" "registry_pull" {

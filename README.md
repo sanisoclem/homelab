@@ -51,8 +51,6 @@ Turn off short-lived tokens. It seems to be turned on by default for new apps no
 
 1. Create a PAT per gitops repo 
 
-1. Create a classic PAT with `read:packages`, this will be used by argocd to pull images from ghcr.
-
 1. Create a Cloudflare API Token for each zone (`Zone:Read` and `Zone:DNS:Edit`). This is used to create DNS records for the LB and for cert-manager challenges.
 
 1. Create TrueNAS API key, RustFS (hosted in truenas)

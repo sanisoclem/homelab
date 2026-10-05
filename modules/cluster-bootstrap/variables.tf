@@ -52,18 +52,7 @@ variable "argocd_chart_version" {
 
 variable "github_user" {
   type        = string
-  description = "GitHub account the repo tokens and the registry token belong to"
-}
-
-variable "ghcr_token" {
-  type        = string
-  description = "Classic PAT with the read:packages scope, for pulling app images. GHCR rejects fine-grained tokens, so this one cannot be scoped to a repository"
-  sensitive   = true
-
-  validation {
-    condition     = length(var.ghcr_token) > 0
-    error_message = "ghcr_token must not be empty."
-  }
+  description = "GitHub account the repo tokens belong to"
 }
 
 variable "registry_host" {

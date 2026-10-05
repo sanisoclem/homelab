@@ -48,13 +48,7 @@ variable "home_token" {
 
 variable "github_user" {
   type        = string
-  description = "GitHub account the repo tokens and the registry token belong to"
-}
-
-variable "ghcr_token" {
-  type        = string
-  description = "Classic PAT with the read:packages scope, for pulling app images. GHCR rejects fine-grained tokens"
-  sensitive   = true
+  description = "GitHub account the repo tokens belong to"
 }
 
 variable "registry_host" {
