@@ -70,6 +70,7 @@ module "bootstrap" {
     BRIDGE_CLIENT_SECRET      = var.bridge_client_secret
     BUDGET_CLIENT_ID          = var.budget_client_id
     BUDGET_CLIENT_SECRET      = var.budget_client_secret
+    ASSISTANT_MODEL_API_KEY   = var.assistant_model_api_key
   }
 
   stable_secrets = {

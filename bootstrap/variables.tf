@@ -208,6 +208,13 @@ variable "budget_client_secret" {
   default     = ""
 }
 
+variable "assistant_model_api_key" {
+  type        = string
+  description = "Deepseek API key for hempire assistant domain"
+  sensitive   = true
+  default     = ""
+}
+
 variable "plex_claim_token" {
   type        = string
   description = "Plex claim token from plex.tv/claim, valid for four minutes"
