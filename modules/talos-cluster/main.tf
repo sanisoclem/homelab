@@ -109,6 +109,12 @@ locals {
     }
   }
 
+  oom_patch = {
+    apiVersion              = "v1alpha1"
+    kind                    = "OOMConfig"
+    cgroupRankingExpression = "class == Besteffort || (class == Burstable && memory_max.hasValue()) ? double(memory_current.orValue(0u)) : 0.0"
+  }
+
   controlplane_patch = {
     cluster = {
       allowSchedulingOnControlPlanes = false
@@ -226,6 +232,7 @@ data "talos_machine_configuration" "node" {
         )
       }),
       yamlencode({ apiVersion = "v1alpha1", kind = "HostnameConfig", "$patch" = "delete" }),
+      yamlencode(local.oom_patch),
     ],
     each.value.type == "controlplane" ? [yamlencode(local.controlplane_patch)] : [],
   )
